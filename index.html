@@ -1,0 +1,168 @@
+<title>결제 목업 프로토타입</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<style>
+/* 부스 데모 4번 폰 목업(Figma Mobile-white) 속 결제 시퀀스. 화면 = 퍼즐 프로젝트 스토리보드 1~6 (assets/sb1~6.png, 390×844 @4x = 1560×3376, 4K 키오스크 기준) */
+:root{--bg:#E9EDF5}
+body{background:var(--bg);margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:16px;box-sizing:border-box}
+/* ===== 목업 (단위: Figma Mobile-white 좌표 = 기기 136×274, 화면 126 폭) ===== */
+.stage{position:relative;width:calc(150px * var(--k));height:calc(292px * var(--k));--k:2.4;max-width:100%}
+/* 확대는 transform 대신 zoom: 화면 이미지끼리 반올림 오차로 몇 px씩 어긋나지 않게 */
+.dev{position:absolute;left:0;top:0;width:150px;height:292px;zoom:var(--k)}
+.phone{position:absolute;left:7px;top:7px;width:136px;height:274px;border-radius:19.88px;background:#fff;
+  box-shadow:.35px 1.39px 8.37px rgba(0,0,0,.35),inset -1.39px -3.14px 2.44px rgba(0,0,0,.19)}
+.scr{position:absolute;left:5px;top:4px;width:126px;height:265px;border-radius:14px;overflow:hidden;background:#fff}
+.spk{position:absolute;left:47.08px;top:3.84px;width:41.85px;height:9.07px;border-radius:0 0 10.46px 10.46px;background:#fff}
+.spk i{position:absolute;left:10.81px;top:3.48px;width:18.83px;height:1.39px;border-radius:2.79px;background:#CFCFCF}
+.spk b{position:absolute;left:31.03px;top:3.48px;width:1.39px;height:1.39px;border-radius:50%;background:#CFCFCF}
+.scr .L{position:absolute}
+.scr img.L{left:0;width:126px}
+.sk,.sk i{position:absolute}
+.sk{left:0;right:0;bottom:0;background:#fff;overflow:hidden;isolation:isolate}
+.sk i{display:block;background:#EEF0F3}
+.sheet,.scroll{position:absolute;overflow:hidden}
+.scroll{background:#fff}
+.scroll .in{position:absolute;left:0;top:0}
+.scroll img,.sheet img{position:absolute;width:126px}
+.load{position:absolute;border-radius:50%;background:#E6E9FA}
+.load i{position:absolute;border-radius:50%;background:#3C62DD}
+.load svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
+.load path{fill:none;stroke:#3C62DD;stroke-width:3;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:32;stroke-dashoffset:32}
+.hand{position:absolute;width:14px;height:14px;margin:-7px 0 0 -7px;border-radius:50%;background:rgba(46,107,242,.22);box-shadow:0 0 0 .6px rgba(46,107,242,.5) inset;opacity:0;pointer-events:none}
+.sb{position:absolute;left:-1px;top:-2px;width:128px;height:13px;background:#fff}
+.white{position:absolute;inset:0;background:#fff;opacity:0}
+/* 확인용 언어 버튼 (실제 앱에서는 setLang 호출로 대체) */
+#lang{position:fixed;top:16px;right:16px;min-width:44px;height:32px;border:0;border-radius:16px;background:#fff;color:#212121;font:600 13px/32px system-ui,sans-serif;box-shadow:0 1px 4px rgba(0,0,0,.15);cursor:pointer}
+
+</style>
+
+<div class="stage" id="stage"><div class="dev" id="dev">
+  <div class="phone"><div class="scr" id="scr"></div><div class="spk"><i></i><b></b></div></div>
+</div></div>
+<button type="button" id="lang" aria-label="언어 전환">KR</button>
+
+<script>
+/* ---------- 좌표: 스토리보드(390×844) → 목업 화면(126 폭) ---------- */
+const S=126/390, Y=y=>11-47*S+y*S, X=x=>x*S, f=v=>v*S;
+// 터치 좌표. EN은 사이드바 "South Korea"가 두 줄이라 한국 탭 위치만 다름 (화면 구조는 KR과 동일)
+const PT_KO={tab:[195,313.5],kr:[51,520.5],tile:[158,521],chk:[30,718],pay:[195,773],load5:[170,335],load6:[169.5,237]};
+const PT_EN={...PT_KO,kr:[51,552]};
+let LANG=new URLSearchParams(location.search).get('lang')==='en'?'en':'ko', PT=LANG==='en'?PT_EN:PT_KO;
+const SHT=698, SC=205;
+const EZ={move:'cubic-bezier(0.65,0,0.35,1)',decel:'cubic-bezier(0.16,1,0.3,1)',out:'cubic-bezier(0.55,0,1,0.45)',in:'cubic-bezier(0.22,1,0.36,1)'};
+
+/* ---------- 레이어 만들기 ---------- */
+const scr=document.getElementById('scr');
+const el=(tag,cls,style)=>{const e=document.createElement(tag);if(cls)e.className=cls;if(style)Object.assign(e.style,style);return e;};
+// 화면 이미지: 언어별 파일(sbN.png / sbN-en.png)을 IMGS에 등록해 두고 setLang에서 한 번에 교체
+const IMGS=[];
+const img=(n,style,cls)=>{const i=el('img',cls,style);i.dataset.n=n;i.alt='';IMGS.push(i);return i;};
+const srcOf=n=>`assets/sb${n}${LANG==='en'?'-en':''}.png`;
+const shot=(n,extra)=>img(n,{top:Y(0)+'px',height:f(844)+'px',clipPath:`inset(${f(47)}px 0 0 0)`,...extra},'L');
+const L={};
+L.s1=shot(1);L.s2=shot(2,{opacity:0});
+// 우측 목록 스크롤 레이어 (sb2 위쪽 + sb3로 아래 이어 붙임)
+L.scroll=el('div','scroll',{left:X(102)+'px',top:Y(335)+'px',right:0,bottom:0,opacity:0});
+const inn=el('div','in',{width:'126px'});
+// 목록 전체(글로벌~인도네시아, Figma 260×724 @4x): 화면 x 116, y 349부터
+const sa=img('-list',{left:f(14)+'px',top:f(14)+'px',width:f(260)+'px',height:f(724)+'px'});
+inn.append(sa);L.scroll.append(inn);L.scrollIn=inn;
+L.side=shot(3,{clipPath:`inset(${f(335)}px ${f(390-102)}px ${f(844-SHT)}px 0)`,opacity:0});
+L.s3=shot(3,{clipPath:`inset(${f(47)}px 0 ${f(844-SHT)}px 0)`,opacity:0});
+// 하단 CTA 시트
+L.sheet=el('div','sheet',{left:0,top:Y(SHT)+'px',width:'126px',height:f(844-SHT)+'px',transform:`translateY(${f(844-SHT)}px)`});
+const sh3=img(3,{left:0,top:f(-SHT)+'px',height:f(844)+'px'});
+const sh4=img(4,{left:0,top:f(-SHT)+'px',height:f(844)+'px',opacity:0});
+L.sheet.append(sh3,sh4);L.sh4=sh4;
+// [결제하기] 버튼만 따로 떼어 눌림 모션 (원래 버튼 자리는 흰 바탕으로 가리고, 그 위에 같은 버튼을 얹음). 버튼 = 화면 x 20~370, y 742~804
+L.btn=el('div',null,{position:'absolute',left:f(18)+'px',top:f(742-SHT-2)+'px',width:f(354)+'px',height:f(66)+'px',background:'#fff'});
+L.btnIn=el('div',null,{position:'absolute',left:f(2)+'px',top:f(2)+'px',width:f(350)+'px',height:f(62)+'px',overflow:'hidden',borderRadius:f(12)+'px'});
+const bi=img(4,{left:-f(20)+'px',top:-f(742)+'px',height:f(844)+'px'});
+L.btnIn.append(bi);L.btn.append(L.btnIn);L.sheet.append(L.btn);
+// 스켈레톤 (상단 로고 줄 아래 전체)
+const T=100;L.sk=el('div','sk',{top:Y(T)+'px'});
+[['#F5F5F6',0,157,390,126,0,1],['#EEEFF1',0,437,390,14,0,1],[0,20,115,72,16,4],[0,290,115,80,16,4],
+ ['#E6E8EB',21,168,348,47,8],['#E6E8EB',21,224,171,47,8],['#E6E8EB',198,224,171,47,8],
+ [0,50,306,50,14,4],[0,170,306,50,14,4],[0,290,306,50,14,4],[0,21,356,168,60,8],[0,201,356,168,60,8],
+ [0,21,472,112,60,8],[0,139,472,112,60,8],[0,257,472,112,60,8],[0,21,542,112,60,8],[0,139,542,112,60,8],[0,257,542,112,60,8],
+ [0,21,612,112,60,8],[0,139,612,112,60,8],[0,257,612,112,60,8],[0,21,690,348,47,8],[0,21,756,348,47,8]]
+ .forEach(([c,x,y,w,h,r,bg])=>L.sk.append(el('i',null,{left:f(x)+'px',top:f(y-T)+'px',width:f(w)+'px',height:f(h)+'px',borderRadius:f(r)+'px',...(c?{background:c}:{}),...(bg?{zIndex:-1}:{})})));
+
+L.s5=shot(5,{opacity:0});L.s6=shot(6);
+// 로딩 원 → 체크
+L.load=el('div','load',{width:f(51)+'px',height:f(51)+'px',opacity:0});
+L.dots=[12.5,22.5,32.5].map(x=>{const d=el('i',null,{left:f(x)+'px',top:f(22.5)+'px',width:f(6)+'px',height:f(6)+'px'});L.load.append(d);return d;});
+// 결제 성공 체크 원: 로딩 원과 별개, 6번 화면 체크 자리에 고정
+L.ok=el('div','load',{width:f(51)+'px',height:f(51)+'px',left:X(PT.load6[0])+'px',top:Y(PT.load6[1])+'px',opacity:0});
+L.ok.innerHTML='<svg viewBox="0 0 51 51" aria-hidden="true"><path d="M15.5 24 L23 31.5 L36 17.5"/></svg>';L.check=L.ok.querySelector('path');
+// 결제 성공 화면과 체크 원을 한 묶음으로 페이드 (화면 속 정지 체크가 비쳐 보이지 않게)
+L.ok.style.opacity=1;L.g6=el('div',null,{position:'absolute',inset:0,opacity:0});L.g6.append(L.s6,L.ok);
+L.sb=el('div','sb');L.hand=el('div','hand');L.white=el('div','white');
+scr.append(L.s1,L.s2,L.scroll,L.side,L.s3,L.sheet,L.sk,L.s5,L.g6,L.load,L.sb,L.hand,L.white);
+IMGS.forEach(i=>i.src=srcOf(i.dataset.n));
+// 다른 언어 이미지도 미리 받아 둬서 전환 직후 빈 화면이 안 보이게
+['1','2','3','4','5','6','-list'].forEach(n=>{new Image().src=`assets/sb${n}${LANG==='en'?'':'-en'}.png`;});
+
+/* ---------- 스케일 ---------- */
+const stage=document.getElementById('stage'),dev=document.getElementById('dev');
+const fit=()=>{const w=Math.min(innerWidth-32,innerHeight*150/292-32,420);stage.style.setProperty('--k',w/150);};
+fit();addEventListener('resize',fit);
+
+/* ---------- 재생 엔진 ---------- */
+let gen=0;const anims=new Set();
+// 애니메이션이 끝나면 최종 값을 인라인 스타일로 고정하고 애니메이션은 지움 → 끝난 뒤에도 따로 떼어 그려지지 않아 모든 화면이 같은 선명도로 보임
+const SETTLED=[];
+function settle(a){const el=a.effect.target;const props=[...new Set(a.effect.getKeyframes().flatMap(k=>Object.keys(k)).filter(p=>!['offset','easing','composite','computedOffset'].includes(p)))].map(p=>p.replace(/[A-Z]/g,m=>'-'+m.toLowerCase()));
+  a.finished.then(()=>{props.forEach(p=>SETTLED.push([el,p,el.style.getPropertyValue(p)]));a.commitStyles();a.cancel();}).catch(()=>{});return a;}
+function unsettle(){while(SETTLED.length){const [el,p,v]=SETTLED.pop();if(v)el.style.setProperty(p,v);else el.style.removeProperty(p);}}
+const A=(e,kf,dur,delay=0,ez='in',opt={})=>{const a=e.animate(kf,{duration:dur,delay:delay,easing:EZ[ez]||ez,fill:'both',...opt});anims.add(a);if(opt.iterations!==Infinity)settle(a);return a;};
+const wait=ms=>new Promise(r=>setTimeout(r,ms));
+const P=([x,y])=>({left:X(x)+'px',top:Y(y)+'px'});
+const LP=([x,y])=>({left:X(x)+'px',top:Y(y)+'px'});
+
+/* ---------- 시퀀스 ---------- */
+let cur;
+const show=(e,d)=>A(e,[{opacity:0},{opacity:1}],d,0,'move');
+const moveTo=async(pt,d)=>{A(L.hand,[{...P(cur),opacity:1},{...P(pt),opacity:1}],d,0,'move');cur=pt;await wait(d+64);};
+const press=async fn=>{A(L.hand,[{...P(cur),opacity:1,transform:'scale(1)'},{...P(cur),opacity:1,transform:'scale(.8)'}],104);if(fn)fn();await wait(128);
+  A(L.hand,[{...P(cur),opacity:1,transform:'scale(.8)'},{...P(cur),opacity:1,transform:'scale(1)'}],128,0,'decel');await wait(160);};
+function reset(){anims.forEach(a=>a.cancel());anims.clear();unsettle();}
+async function run(){
+  const g=++gen;const alive=()=>g===gen;reset();
+  // 스켈레톤: 블록이 은은하게 숨쉬듯 옅어졌다 돌아옴 (배경 영역 제외)
+  const pulse=[...L.sk.children].filter(b=>b.style.zIndex!=='-1').map(b=>A(b,[{opacity:1},{opacity:.55},{opacity:1}],1400,0,'ease-in-out',{iterations:Infinity}));
+  await wait(1120);if(!alive())return;A(L.sk,[{opacity:1},{opacity:0}],280,0,'move');await wait(480);
+  pulse.forEach(a=>a.cancel());if(!alive())return; // 스켈레톤이 사라지면 깜빡임도 멈춤
+  cur=PT.tab;A(L.hand,[{...P(cur),opacity:0,transform:'scale(1.5)'},{...P(cur),opacity:1,transform:'scale(1)'}],224,0,'decel');await wait(304);
+  await press(()=>show(L.s2,200));await wait(240);if(!alive())return;
+  await moveTo(PT.kr,440);// 누르는 순간 바로 스크롤 시작 (빠르게 출발해 부드럽게 멈춤), 한국 아래로 인도네시아가 이어서 보임
+  // 스크롤은 transform 대신 top으로: 멈춘 뒤 다른 화면과 같은 선명도로 그려지게
+  await press(()=>{show(L.side,160);A(L.scroll,[{opacity:1},{opacity:1}],1);A(L.scrollIn,[{top:'0px'},{top:`${-f(SC)}px`}],560,0,'in');});
+  await wait(480);if(!alive())return;
+  await moveTo(PT.tile,480);await press(()=>show(L.s3,120));
+  A(L.sheet,[{transform:`translateY(${f(844-SHT)}px)`},{transform:'translateY(0)'}],360,0,'decel');await wait(440);if(!alive())return;
+  await moveTo(PT.chk,520);await press(()=>show(L.sh4,120));await wait(120);if(!alive())return;
+  await moveTo(PT.pay,400);await press(()=>A(L.btnIn,[{transform:'scale(1)'},{transform:'scale(.96)'},{transform:'scale(1)'}],240,0,'move'));
+  A(L.hand,[{...P(cur),opacity:1},{...P(cur),opacity:0}],160,0,'out');
+  show(L.s5,240);A(L.load,[{...LP(PT.load5),opacity:0},{...LP(PT.load5),opacity:1}],240,0,'move');
+  L.dots.forEach((d,i)=>A(d,[{transform:'translateY(0)'},{transform:`translateY(${-f(5)}px)`,offset:.25},{transform:'translateY(0)',offset:.5},{transform:'translateY(0)'}],900,i*150,'ease-in-out',{iterations:Infinity,fill:'none'}));
+  await wait(1920);if(!alive())return;
+  // 결제 진행 중 → 결제 성공: 화면 교차 페이드, 로딩 원은 제자리에서 사라지고 체크 원은 6번 자리에서 나타남
+  A(L.load,[{...LP(PT.load5),opacity:1},{...LP(PT.load5),opacity:0}],140,0,'out');show(L.g6,320); // 로딩 원이 먼저 빠르게 사라져 결제 성공 문구와 겹치지 않게
+  // 결제 성공 화면이 다 나타난 뒤(320ms) 잠깐 쉬고 체크가 그려짐
+  A(L.check,[{strokeDashoffset:32},{strokeDashoffset:0}],336,480,'decel');await wait(1360);if(!alive())return;
+  A(L.white,[{opacity:0},{opacity:1}],720,0,'move');await wait(880+800);if(!alive())return;
+  run();
+}
+/* ---------- 언어 전환: setLang('ko'|'en') → 이미지·좌표 교체 후 처음부터 다시 재생 ---------- */
+async function setLang(l){
+  LANG=l==='en'?'en':'ko';PT=LANG==='en'?PT_EN:PT_KO;gen++;reset();
+  IMGS.forEach(i=>i.src=srcOf(i.dataset.n));
+  await Promise.all(IMGS.map(i=>i.decode().catch(()=>{})));
+  langBtn.textContent=LANG==='en'?'EN':'KR';run();
+}
+const langBtn=document.getElementById('lang');langBtn.textContent=LANG==='en'?'EN':'KR';
+langBtn.addEventListener('click',e=>{e.stopPropagation();setLang(LANG==='en'?'ko':'en');});
+document.getElementById('stage').addEventListener('click',run); // 목업을 누르면 처음부터 다시
+run();
+</script>
