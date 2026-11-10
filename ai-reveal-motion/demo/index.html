@@ -6,6 +6,7 @@
 <title>AI 추천 결제창 모션 데모</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/wanteddev/wanted-sans@v1.0.3/packages/wanted-sans/fonts/webfonts/variable/split/WantedSansVariable.min.css" />
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
+<link rel="stylesheet" href="../src/m3-theme.css" />
 <link rel="stylesheet" href="../src/ai-button.css" />
 <link rel="stylesheet" href="../src/generation-reveal.css" />
 <link rel="stylesheet" href="../src/color-dropdown.css" />
@@ -13,7 +14,7 @@
 </head>
 <body>
   <div class="phone">
-    <div class="head"></div>
+    <div class="head"><i class="logo"></i><div class="amt"><span>결제 금액</span><span>10,000원</span></div></div>
 
     <span class="globe" aria-hidden="true"><svg viewBox="0 0 10 10" fill="#55678D"><path fill-rule="evenodd" d="M5 0.416664C2.46989 0.416664 0.416672 2.46988 0.416672 5C0.416672 7.52983 2.46545 9.58333 5 9.58333C7.53013 9.58333 9.58334 7.53012 9.58334 5C9.58334 2.46988 7.53013 0.416664 5 0.416664ZM8.72709 4.58333C8.57938 3.24949 7.73113 2.12577 6.5588 1.58876C6.61021 1.68316 6.65875 1.78148 6.7045 1.88304C7.03025 2.60614 7.23838 3.54991 7.28275 4.58333H8.72709ZM7.28275 5.41666H8.72709C8.57938 6.7505 7.73113 7.87421 6.5588 8.41125C6.61021 8.31683 6.65875 8.2185 6.7045 8.11695C7.03025 7.39387 7.23838 6.45008 7.28275 5.41666ZM6.44859 4.58333C6.40471 3.64956 6.2155 2.82641 5.94471 2.22529C5.7893 1.88028 5.61517 1.62644 5.44292 1.46438C5.27284 1.30433 5.12388 1.25 5 1.25C4.87613 1.25 4.72717 1.30433 4.55709 1.46438C4.38484 1.62644 4.21071 1.88028 4.0553 2.22529C3.78452 2.82641 3.5953 3.64956 3.5514 4.58333H6.44859ZM3.5514 5.41666H6.44859C6.40471 6.35041 6.2155 7.17358 5.94471 7.7747C5.7893 8.11971 5.61517 8.37354 5.44292 8.53562C5.27284 8.69566 5.12388 8.75 5 8.75C4.87613 8.75 4.72717 8.69566 4.55709 8.53562C4.38484 8.37354 4.21071 8.11971 4.0553 7.7747C3.78452 7.17358 3.5953 6.35041 3.5514 5.41666ZM2.71724 4.58333C2.76161 3.54991 2.96977 2.60614 3.29549 1.88304C3.34123 1.78148 3.3898 1.68316 3.4412 1.58876C2.2689 2.12577 1.42062 3.24949 1.27293 4.58333H2.71724ZM1.27288 5.41666H2.71724C2.76161 6.45008 2.96977 7.39387 3.29549 8.11695C3.34141 8.21891 3.39018 8.31758 3.44178 8.41233C2.26793 7.87575 1.42033 6.7515 1.27288 5.41666Z"/></svg></span>
     <div class="cp">
@@ -33,7 +34,7 @@
 
     <div class="region rv-root" id="region">
       <div class="rv-skel" id="skel"><canvas class="rv-ambient"></canvas><i class="sk-tabs"><span style="left:47px">신용카드</span><span class="on" style="left:164px">간편결제</span><span style="left:281px">계좌이체</span><b></b></i></div>
-      <div class="rv-sharp"><div class="shot"></div></div>
+      <div class="rv-sharp"><div class="pw"></div></div>
       <div class="rv-blur"></div>
       <canvas class="rv-canvas"></canvas>
     </div>

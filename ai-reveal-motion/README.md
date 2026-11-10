@@ -1,6 +1,6 @@
 # AI 추천 결제창 모션 핸드오프
 
-결제창의 **[AI 추천] 버튼 → AI Generating Reveal** 인터랙션과 **결제창 컬러 변경 드롭다운** 모션 코드입니다.
+결제창의 **[AI 추천] 버튼 → AI Generating Reveal** 인터랙션, **결제창 컬러 변경 드롭다운** 모션, 드롭다운에 따라 바뀌는 **M3 색상 테마 토큰**입니다.
 영상용 목업이 아니라, 기존 서비스 코드에 옮겨 넣기 위한 참고 구현입니다. 프레임워크 없이 순수 JS(Web Animations API + Canvas)로 작성했습니다.
 
 - 데모: `demo/index.html`을 로컬 서버로 열기 (예: 이 폴더에서 `python -m http.server 8770` → http://localhost:8770/demo/)
@@ -11,6 +11,7 @@
 | 파일 | 역할 |
 |---|---|
 | `src/motion-tokens.js` | 공통 이징 값 |
+| `src/m3-theme.css` / `.json` | Figma M3 색상 토큰 (라이트 모드, 8개 테마 × 12개 역할). 컬러 드롭다운 테마 전환에 사용 |
 | `src/ai-button.js` / `.css` | AI 추천 버튼: 눌림 → 동그란 별 버튼으로 줄어듦(로딩) → 원래 버튼으로 복귀 |
 | `src/generation-reveal.js` / `.css` | AI Generating Reveal: 스켈레톤 + 뒤 배경 빛 → 글로우가 위에서 아래로 쓸며 블러→선명으로 새 내용 등장 |
 | `src/color-dropdown.js` / `.css` | 결제창 컬러 변경 드롭다운: 팔레트 버튼 → 알약이 늘어나며 컬러칩 7개 등장 |
@@ -106,11 +107,48 @@ React 등에서 쓸 때는 각 클래스를 `useEffect`에서 DOM ref로 생성�
 - 펼친 알약이 팔레트 버튼을 덮으므로, 맨 위 `.cp-default`가 닫기 역할
 - 바깥 터치로 닫으려면 바깥 클릭에서 `dropdown.close()` 호출
 
+## 컬러 드롭다운 → 결제창 테마 전환 (M3 토큰)
+
+Figma 변수 컬렉션 **M3 · Palette**(테마별 실제 색)와 **M3 · Theme**(역할별 색)를 `src/m3-theme.css`로 옮겼습니다. **라이트 모드만** 넣었습니다.
+
+- 결제창 루트에 `data-m3-theme="Pink"`처럼 테마 이름을 붙이면 `--md-sys-color-*` 변수가 바뀜
+- 테마 이름 = 컬러 드롭다운 칩의 `data-color` 값: `Baseline` `Green` `Monochrome` `Pink` `Mint` `Orange` `Blue` (+ `Rose`: AI 추천 프리셋용, 칩 없음)
+- 테마를 안 붙이면 원래 페이버스 결제창 색 (Figma 토큰이 아니라 현재 화면 색을 같은 역할 이름에 맞춘 값)
+- UI에는 색상값 대신 **역할 변수만** 씀. CSS가 아닌 환경(React Native·Flutter 등)은 `src/m3-theme.json` 사용
+
+```js
+new ColorDropdown(trigger, panel, {
+  onSelect: (theme) => { paymentRoot.dataset.m3Theme = theme; },
+});
+```
+
+### 결제창 요소 ↔ 토큰 (Figma '커스터마이징 적용' 라이트 보드에서 컴포넌트에 연결된 값)
+
+| 요소 | 속성 | 토큰 (CSS 변수) |
+|---|---|---|
+| 헤더 배경, 결제수단 목록 영역 배경 | 배경 | Surface (`--md-sys-color-surface`) |
+| "결제 금액", 지역 제목(중국·한국), 상태바 | 글자 | On Surface (`--md-sys-color-on-surface`) |
+| 금액 "10,000원" | 글자 | Primary (`--md-sys-color-primary`) |
+| 대표 결제수단 영역 | 배경 | Surface Container (`--md-sys-color-surface-container`) |
+| 대표 결제수단 카드, 결제수단 타일 | 배경 | Surface Container Lowest (`--md-sys-color-surface-container-lowest`) |
+| 〃 | 테두리 | Outline Variant (`--md-sys-color-outline-variant`) |
+| 결제방식 탭 줄 | 아래 선 | Outline Variant |
+| 결제방식 탭 (선택 안 됨) | 글자 | On Surface Variant (`--md-sys-color-on-surface-variant`) |
+| 결제방식 탭 (선택됨) | 글자 | On Primary Container (`--md-sys-color-on-primary-container`) |
+| 결제방식 탭 (선택됨) | 밑줄 | Primary |
+| 나라 탭 행 (선택 안 됨) | 배경 / 글자 | Surface Container Low / On Surface Variant |
+| 나라 탭 행 (선택됨) | 배경 / 글자 | Primary Container / On Primary Container |
+| 하단 [결제하기] 버튼 | 배경 / 글자 | Primary / On Primary |
+
+- 결제방식 탭 줄 배경은 Figma에서 칠이 없어(뒤가 비침) 데모에서는 Surface Container Low로 칠했습니다
+- AI 추천 버튼, 컬러칩, 로고, Reveal 글로우 색은 테마와 무관하게 고정
+- 데모 적용 예: `demo/demo.css` (모든 결제창 색이 역할 변수로 칠해져 있음)
+
 ## 접근성
 - `prefers-reduced-motion: reduce`이면 Reveal은 애니메이션 없이 바로 최종 화면으로 바뀜
 
 ## 데모에서만 임시로 한 것 (서비스에서는 실제 데이터로)
 - AI 추천 결과: 상단 알리페이 / 위챗페이 / 알리페이 홍콩, 나라 탭 싱가포르 > 태국 > 베트남 > 인도네시아 > 말레이시아 > 한국
 - 나라별 결제수단 로고가 없어 타일은 모두 우리카드 로고로 표시
-- 컬러칩을 골라도 결제창 테마는 바뀌지 않음 (`onSelect` 자리만 있음), Rose 테마 미적용
-- 화면은 Figma 이미지 위에 좌표로 덧그린 것이라 크기가 고정 (380×592)
+- AI 추천 결과에 Rose 테마는 적용하지 않음 (모션 확인용)
+- 결제창은 Figma 좌표대로 HTML로 그린 목업이라 크기가 고정 (380×592). 로고만 이미지

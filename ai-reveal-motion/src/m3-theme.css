@@ -1,0 +1,145 @@
+/* =========================================================
+   M3 색상 테마 토큰 (라이트 모드만)
+   출처: Figma 파일 '코리아 핀테크 영상 기획' 변수 컬렉션
+     - M3 · Palette : 테마별 실제 색상값 (Schemes/<역할>/Light)
+     - M3 · Theme   : 역할별 색상 (Schemes/<역할>) → 이 파일의 --md-sys-color-<역할>
+   사용: 결제창 루트에 data-m3-theme="Pink" 처럼 테마 이름을 붙이면 아래 변수가 바뀜
+         UI에는 색상값 대신 역할 변수만 씀 (예: 버튼 배경 var(--md-sys-color-primary))
+   테마 이름 = 컬러 드롭다운 칩의 data-color 값과 같음 (Rose는 AI 추천 프리셋용, 칩 없음)
+   ========================================================= */
+
+/* 테마 미선택(기본) = 원래 페이버스 결제창 색. Figma 토큰이 아니라 현재 화면 색을 같은 역할 이름에 맞춘 값 */
+:root, [data-m3-theme] {
+  --md-sys-color-primary: #3c62dd;
+  --md-sys-color-on-primary: #ffffff;
+  --md-sys-color-primary-container: #ffffff;
+  --md-sys-color-on-primary-container: #3c62dd;
+  --md-sys-color-background: #ffffff;
+  --md-sys-color-surface: #ffffff;
+  --md-sys-color-on-surface: #212121;
+  --md-sys-color-on-surface-variant: #9e9e9e;
+  --md-sys-color-outline-variant: #f5f5f5;
+  --md-sys-color-surface-container-lowest: #ffffff;
+  --md-sys-color-surface-container-low: #fafafa;
+  --md-sys-color-surface-container: #f5f5f5;
+}
+
+[data-m3-theme="Baseline"] {
+  --md-sys-color-primary: #7049d9;
+  --md-sys-color-on-primary: #ffffff;
+  --md-sys-color-primary-container: #efe4ff;
+  --md-sys-color-on-primary-container: #4f378a;
+  --md-sys-color-background: #fef7ff;
+  --md-sys-color-surface: #ffffff;
+  --md-sys-color-on-surface: #1d1b20;
+  --md-sys-color-on-surface-variant: #49454f;
+  --md-sys-color-outline-variant: #efe9f5;
+  --md-sys-color-surface-container-lowest: #ffffff;
+  --md-sys-color-surface-container-low: #fdfaff;
+  --md-sys-color-surface-container: #f3edf7;
+}
+
+[data-m3-theme="Green"] {
+  --md-sys-color-primary: #2fb081;
+  --md-sys-color-on-primary: #ffffff;
+  --md-sys-color-primary-container: #e0f0e2;
+  --md-sys-color-on-primary-container: #17472d;
+  --md-sys-color-background: #f7fcf7;
+  --md-sys-color-surface: #ffffff;
+  --md-sys-color-on-surface: #1d2523;
+  --md-sys-color-on-surface-variant: #526257;
+  --md-sys-color-outline-variant: #eaf3ec;
+  --md-sys-color-surface-container-lowest: #ffffff;
+  --md-sys-color-surface-container-low: #fafafa;
+  --md-sys-color-surface-container: #e1eedf;
+}
+
+[data-m3-theme="Monochrome"] {
+  --md-sys-color-primary: #000000;
+  --md-sys-color-on-primary: #e2e2e2;
+  --md-sys-color-primary-container: #fafafa;
+  --md-sys-color-on-primary-container: #000000;
+  --md-sys-color-background: #f9f9f9;
+  --md-sys-color-surface: #ffffff;
+  --md-sys-color-on-surface: #1b1b1b;
+  --md-sys-color-on-surface-variant: #474747;
+  --md-sys-color-outline-variant: #eaeaea;
+  --md-sys-color-surface-container-lowest: #ffffff;
+  --md-sys-color-surface-container-low: #f0f0f0;
+  --md-sys-color-surface-container: #eeeeee;
+}
+
+[data-m3-theme="Pink"] {
+  --md-sys-color-primary: #df267b;
+  --md-sys-color-on-primary: #ffffff;
+  --md-sys-color-primary-container: #ffdceb;
+  --md-sys-color-on-primary-container: #6e334f;
+  --md-sys-color-background: #fff8f8;
+  --md-sys-color-surface: #ffffff;
+  --md-sys-color-on-surface: #21191c;
+  --md-sys-color-on-surface-variant: #504348;
+  --md-sys-color-outline-variant: #f9eef1;
+  --md-sys-color-surface-container-lowest: #ffffff;
+  --md-sys-color-surface-container-low: #fff9fa;
+  --md-sys-color-surface-container: #faeaee;
+}
+
+[data-m3-theme="Mint"] {
+  --md-sys-color-primary: #0093a0;
+  --md-sys-color-on-primary: #ffffff;
+  --md-sys-color-primary-container: #e4f5f0;
+  --md-sys-color-on-primary-container: #004e41;
+  --md-sys-color-background: #f4fcf9;
+  --md-sys-color-surface: #ffffff;
+  --md-sys-color-on-surface: #1d2523;
+  --md-sys-color-on-surface-variant: #4d655d;
+  --md-sys-color-outline-variant: #e3edea;
+  --md-sys-color-surface-container-lowest: #ffffff;
+  --md-sys-color-surface-container-low: #fafafa;
+  --md-sys-color-surface-container: #d8f0e8;
+}
+
+[data-m3-theme="Orange"] {
+  --md-sys-color-primary: #ff893a;
+  --md-sys-color-on-primary: #ffffff;
+  --md-sys-color-primary-container: #ffeee2;
+  --md-sys-color-on-primary-container: #ff6600;
+  --md-sys-color-background: #fff8f5;
+  --md-sys-color-surface: #fdfdfd;
+  --md-sys-color-on-surface: #221a15;
+  --md-sys-color-on-surface-variant: #52443c;
+  --md-sys-color-outline-variant: #f4efec;
+  --md-sys-color-surface-container-lowest: #ffffff;
+  --md-sys-color-surface-container-low: #fafafa;
+  --md-sys-color-surface-container: #fff0ea;
+}
+
+[data-m3-theme="Blue"] {
+  --md-sys-color-primary: #2b5893;
+  --md-sys-color-on-primary: #ffffff;
+  --md-sys-color-primary-container: #ebf0f7;
+  --md-sys-color-on-primary-container: #143c6b;
+  --md-sys-color-background: #f7faff;
+  --md-sys-color-surface: #ffffff;
+  --md-sys-color-on-surface: #1d2523;
+  --md-sys-color-on-surface-variant: #536174;
+  --md-sys-color-outline-variant: #ebeef2;
+  --md-sys-color-surface-container-lowest: #ffffff;
+  --md-sys-color-surface-container-low: #fafafa;
+  --md-sys-color-surface-container: #dde4ed;
+}
+
+[data-m3-theme="Rose"] {
+  --md-sys-color-primary: #cc3b54;
+  --md-sys-color-on-primary: #ffffff;
+  --md-sys-color-primary-container: #fbe5ea;
+  --md-sys-color-on-primary-container: #72323f;
+  --md-sys-color-background: #fff8f7;
+  --md-sys-color-surface: #ffffff;
+  --md-sys-color-on-surface: #22191a;
+  --md-sys-color-on-surface-variant: #72545c;
+  --md-sys-color-outline-variant: #f3e9eb;
+  --md-sys-color-surface-container-lowest: #ffffff;
+  --md-sys-color-surface-container-low: #fffafa;
+  --md-sys-color-surface-container: #fbeaeb;
+}

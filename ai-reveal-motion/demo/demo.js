@@ -1,14 +1,24 @@
 /**
- * 데모 전용 코드: 결제창 목업 화면 구성 (Figma 화면 이미지 + 좌표로 그린 스켈레톤·로고·AI 추천 결과 화면)
- * 서비스에 넣을 때 참고할 부분은 맨 아래 '모듈 연결' 블록뿐. 나머지는 목업을 그리기 위한 코드
- * 좌표는 Figma 190×296 프레임 기준 값을 2배(k)로 키워 씀
+ * 데모 전용 코드: 결제창 목업 (HTML로 그린 결제창 + 스켈레톤 + 처음/AI 추천 두 상태)
+ * 서비스에 넣을 때 참고할 부분은 맨 아래 '모듈 연결' 블록. 나머지는 목업을 그리기 위한 코드
+ * 좌표는 Figma 190×296 프레임 기준 값을 2배(k)로 키워 씀. Reveal 영역은 Figma y 61부터
  */
 import { AIButton } from '../src/ai-button.js';
 import { GenerationReveal } from '../src/generation-reveal.js';
 import { ColorDropdown } from '../src/color-dropdown.js';
 import { bindAIRecommend } from '../src/ai-recommend.js';
 
-// 컬러칩: Figma colorPicker-dropdown 순서 (위→아래), 그라데이션 3색 (0% / 45% / 100%, 왼→오)
+const k = 2, top = 61;
+const px = (v) => `${v * k}px`;
+const el = (tag, cls, style = {}, text) => {
+  const n = document.createElement(tag);
+  if (cls) n.className = cls;
+  Object.assign(n.style, style);
+  if (text != null) n.textContent = text;
+  return n;
+};
+
+/* ---------- 컬러칩 (Figma colorPicker-dropdown 순서, 그라데이션 0% / 45% / 100%) ---------- */
 const CHIPS = [
   ['Baseline', '#efe4ff', '#d0bcff', '#7049d9'],
   ['Green', '#e0f0e2', '#a5d7ad', '#2fb081'],
@@ -19,143 +29,112 @@ const CHIPS = [
   ['Blue', '#ebf0f7', '#a9ceff', '#2b5893'],
 ];
 document.getElementById('cp-panel').append(...CHIPS.map(([name, c0, c1, c2]) => {
-  const b = document.createElement('button');
+  const b = el('button', 'cp-chip');
   b.type = 'button';
-  b.className = 'cp-chip';
-  b.dataset.color = name;
+  b.dataset.color = name; // = src/m3-theme.css 의 테마 이름
   b.setAttribute('aria-label', name);
   b.style.cssText = `--c0:${c0};--c1:${c1};--c2:${c2}`;
   return b;
 }));
-const dropdown = new ColorDropdown(document.getElementById('cp'), document.getElementById('cp-panel'));
-document.querySelector('.phone').addEventListener('click', () => dropdown.close()); // 바깥 터치 시 닫힘
 
-// 스켈레톤 = 실제 화면 구조(배경·카드·타일)만 남기고 칸 안의 내용(로고·글자)은 비움
-// 좌표: Figma 190 프레임 기준 [x, y, w, h, radius] → 2배, Reveal 영역 상단(y 61) 기준
-const CARD = { background: 'rgba(255,255,255,.5)' }; // 은은한 반투명 흰색, 테두리 없음 → 뒤 배경 빛이 박스 안까지 비침
-const STRUCT = [
-  // 대표 결제수단 영역 회색 배경
-  [[0, 61, 190, 61.1, 0], { background: 'rgba(0,0,0,.04)' }], // #F5F5F5와 같은 밝기, 뒤 빛이 비치도록 반투명
-  // 대표 결제수단 카드 3개
-  [[9.7, 65.6, 170.5, 24.4, 3.9], CARD], [[9.7, 92.9, 84.3, 24.4, 3.9], CARD], [[96, 92.9, 84.3, 24.4, 3.9], CARD],
-  // 나라 탭 열 배경 (#FAFAFA). 선택 표시(흰 배경·파란 밑줄)는 바뀌는 내용이라 뺌
-  [[0, 147.7, 49.7, 154, 0], { background: 'rgba(0,0,0,.02)' }], // #FAFAFA와 같은 밝기, 반투명
-  // 결제수단 타일 8개
-  ...[[56.5, 168.5], [99.4, 168.5], [56.5, 220.4], [99.4, 220.4], [142.3, 220.4], [56.5, 254.5], [99.4, 254.5], [142.3, 254.5]]
-    .map(([x, y]) => [[x, y, 40.9, 30.2, 3.9], CARD]),
-];
-const k = 2, top = 61;
-const rect = ([x, y, w, h, r], cls, style) => {
-  const i = document.createElement('i');
-  if (cls) i.className = cls;
-  Object.assign(i.style, { left: x * k + 'px', top: (y - top) * k + 'px', width: w * k + 'px', height: h * k + 'px', borderRadius: r * k + 'px', ...style });
-  return i;
+/* ---------- 결제창 데이터: 처음 화면 / AI 추천 결과 ---------- */
+// 로고: [파일 이름, 로고 이미지 원본 크기 w, h] — Figma 로고 칸(상단 80×50, 타일 84×53)을 그대로 뽑은 이미지
+const L = {
+  paypal: [80, 50], googlepay: [80, 50], applepay: [80, 50],
+  wechatpay: [84, 53], alipay: [84, 53], alipayhk: [84, 53],
+  kakaopay: [84, 53], tosspay: [84, 53], npay: [84, 53], samsungwallet: [84, 53], ssgpay: [84, 53], lpay: [84, 53],
+  'woori-tile': [40.9, 30.2], // 우리카드는 타일 전체 크기로 뽑음 (임시 로고)
 };
-document.getElementById('skel').append(...STRUCT.map(([g, s]) => rect(g, null, s)));
-// 기존 나라 글자는 스켈레톤에서 연하게 남김 (탭과 같은 방식). 왼쪽 나라 탭: 행 높이 25.6, 열 폭 49.7 가운데 정렬
-const skTxt = (text, x, y, cls = '') => {
-  const s = document.createElement('span');
-  s.className = 'sk-txt ' + cls;
-  s.textContent = text;
-  Object.assign(s.style, { left: x * k + 'px', top: (y - top) * k + 'px' });
-  return s;
+const CARDS = [[9.7, 65.6, 170.5, 24.4], [9.7, 92.9, 84.3, 24.4], [96, 92.9, 84.3, 24.4]]; // 대표 결제수단 카드 3개
+const TILES = [[56.5, 168.5], [99.4, 168.5], [56.5, 220.4], [99.4, 220.4], [142.3, 220.4], [56.5, 254.5], [99.4, 254.5], [142.3, 254.5]];
+const HEADS = [154.5, 206.5]; // 지역 제목 y (첫 지역 타일 2칸, 둘째 지역 타일 6칸)
+
+const STATE_BEFORE = {
+  cards: ['paypal', 'googlepay', 'applepay'],
+  nav: ['글로벌', '중국', '홍콩', '한국', '인도네시아', '말레이시아'],
+  heads: ['중국', '한국'],
+  tiles: ['wechatpay', 'alipay', 'kakaopay', 'tosspay', 'npay', 'samsungwallet', 'ssgpay', 'lpay'],
 };
-const navOld = ['글로벌', '중국', '홍콩', '한국', '인도네시아', '말레이시아'];
-document.getElementById('skel').append(
-  ...navOld.map((t, i) => { const s = skTxt(t, 0, 147.7 + 25.6 * i + 6.4); s.style.width = 49.7 * k + 'px'; s.style.textAlign = 'center'; return s; }),
-  skTxt('중국', 56.5, 154.5, 'h'), skTxt('한국', 56.5, 206.5, 'h'),
-);
+// AI 추천: 상단 알리페이 / 위챗페이 / 알리페이 홍콩, 나라 싱가포르 > 태국 > 베트남 > 인도네시아 > 말레이시아 > 한국
+// 나라별 결제수단 로고가 아직 없어 타일은 우리카드 로고로 임시 표시
+const STATE_AI = {
+  cards: ['alipay', 'wechatpay', 'alipayhk'],
+  nav: ['싱가포르', '태국', '베트남', '인도네시아', '말레이시아', '한국'],
+  heads: ['싱가포르', '태국'],
+  tiles: Array(8).fill('woori-tile'),
+};
 
-// 결제수단 로고: 로고 이미지는 Figma 로고 래퍼(상단 80×50, 타일 84×53)를 그대로 뽑은 것 → 칸 크기에 맞춰 축소, 가운데 정렬
-// [이름, x, y, 칸 w, 칸 h, 로고 이미지 w, h]
-// 처음 화면 (기존 시안 Figma 프레임 "2" 기준)
-const PAY = [
-  // 대표 결제수단 카드 3개: 카드 높이(24.4)에 맞춤
-  // 로고 이미지(흰 여백 포함 전체)가 칸 높이에 꽉 차게. 필요하면 마지막에 실제 로고 영역 [x, y, w, h]를 넣어 그 영역만 꽉 채울 수도 있음
-  ['paypal', 9.7, 65.6, 170.5, 24.4, 80, 50], ['googlepay', 9.7, 92.9, 84.3, 24.4, 80, 50], ['applepay', 96, 92.9, 84.3, 24.4, 80, 50],
-  // 중국
-  ['wechatpay', 56.5, 168.5, 40.9, 30.2, 84, 53], ['alipay', 99.4, 168.5, 40.9, 30.2, 84, 53],
-  // 한국
-  ['kakaopay', 56.5, 220.4, 40.9, 30.2, 84, 53], ['tosspay', 99.4, 220.4, 40.9, 30.2, 84, 53], ['npay', 142.3, 220.4, 40.9, 30.2, 84, 53],
-  ['samsungwallet', 56.5, 254.5, 40.9, 30.2, 84, 53], ['ssgpay', 99.4, 254.5, 40.9, 30.2, 84, 53], ['lpay', 142.3, 254.5, 40.9, 30.2, 84, 53],
-];
-// AI 추천 결과 화면
-// 상단: 알리페이 / 위챗페이 / 알리페이 홍콩
-// 나라 탭: 싱가포르 > 태국 > 베트남 > 인도네시아 > 말레이시아 > 한국 (그 아래는 순서 무관, 화면 밖)
-// 나라별 결제수단 로고가 아직 없어 타일은 전부 우리카드 로고로 임시 표시
-const TILE = [40.9, 30.2, 40.9, 30.2]; // 우리카드 이미지는 타일 전체 크기로 뽑음
-const PAY_AI = [
-  ['alipay', 9.7, 65.6, 170.5, 24.4, 84, 53], ['wechatpay', 9.7, 92.9, 84.3, 24.4, 84, 53], ['alipayhk', 96, 92.9, 84.3, 24.4, 84, 53],
-  ...[[56.5, 168.5], [99.4, 168.5], [56.5, 220.4], [99.4, 220.4], [142.3, 220.4], [56.5, 254.5], [99.4, 254.5], [142.3, 254.5]]
-    .map(([x, y]) => ['woori-tile', x, y, ...TILE]),
-];
-const NAV_AI = ['싱가포르', '태국', '베트남', '인도네시아', '말레이시아', '한국'];
-const SECTIONS_AI = [['싱가포르', 154.5], ['태국', 206.5]];
-
-const shot = document.querySelector('.shot');
-let current = PAY; // 지금 화면에 보이는 로고 목록
-const logo = ([name, x, y, w, h, lw, lh, box]) => {
-  const img = document.createElement('img');
+/** 로고를 칸 크기에 맞춰 가운데 배치 (칸 좌표는 Reveal 영역 기준) */
+const logo = (name, [x, y, w, h], cls = 'logo-img') => {
+  const [lw, lh] = L[name];
+  const sc = Math.min(w / lw, h / lh);
+  const iw = lw * sc, ih = lh * sc;
+  const img = el('img', cls, { position: 'absolute', left: px(x + (w - iw) / 2), top: px(y - top + (h - ih) / 2), width: px(iw), height: px(ih) });
   img.src = `./assets/pay/${name}.png`;
   img.alt = '';
-  if (box) {
-    // 상단 대표 결제수단: 실제 로고 영역만 잘라 칸 높이에 꽉 차게 (폭이 넘치면 폭에 맞춤)
-    const [bx, by, bw, bh] = box;
-    const sc = Math.min(w / bw, h / bh);
-    const cw = bw * sc, ch = bh * sc;
-    const clip = document.createElement('span');
-    clip.className = 'pay-logo dyn';
-    Object.assign(clip.style, { overflow: 'hidden', left: (x + (w - cw) / 2) * k + 'px', top: (y - top + (h - ch) / 2) * k + 'px', width: cw * k + 'px', height: ch * k + 'px' });
-    Object.assign(img.style, { position: 'absolute', left: -bx * sc * k + 'px', top: -by * sc * k + 'px', width: lw * sc * k + 'px', height: lh * sc * k + 'px' });
-    clip.append(img);
-    return clip;
-  }
-  const sc = Math.min(w / lw, h / lh); // 칸 안에 들어가는 최대 배율
-  const iw = lw * sc, ih = lh * sc;
-  img.className = 'pay-logo dyn';
-  Object.assign(img.style, { left: (x + (w - iw) / 2) * k + 'px', top: (y - top + (h - ih) / 2) * k + 'px', width: iw * k + 'px', height: ih * k + 'px' });
   return img;
 };
-/** 선명 레이어 내용을 처음 화면 / AI 추천 화면으로 바꿈 */
-function renderState(ai) {
-  shot.querySelectorAll('.dyn').forEach((n) => n.remove());
-  current = ai ? PAY_AI : PAY;
-  if (ai) {
-    // 나라 탭 + 결제수단 영역을 새로 그림 (Figma y 147.7 기준 → .ai-after 안 좌표)
-    const after = document.createElement('div');
-    after.className = 'ai-after dyn';
-    const nav = document.createElement('div');
-    nav.className = 'nav';
-    nav.append(...NAV_AI.map((t, i) => { const s = document.createElement('span'); s.textContent = t; if (i === 0) s.className = 'on'; return s; }));
-    after.append(nav, ...SECTIONS_AI.map(([t, y]) => {
-      const h = document.createElement('h4');
-      h.textContent = t;
-      Object.assign(h.style, { left: 56.5 * k + 'px', top: (y - 147.7) * k + 'px' });
-      return h;
-    }), ...PAY_AI.slice(3).map(([, x, y]) => {
-      const d = document.createElement('i');
-      d.className = 'tile';
-      Object.assign(d.style, { left: x * k + 'px', top: (y - 147.7) * k + 'px' });
-      return d;
-    }));
-    shot.append(after, ...PAY_AI.map(logo));
-  } else {
-    const cover = document.createElement('i');
-    cover.className = 'nav-line-cover dyn';
-    shot.append(cover, ...PAY.map(logo));
-  }
-}
-renderState(false);
+const tileBox = ([x, y]) => [x, y, 40.9, 30.2];
+const box = ([x, y, w, h], cls) => el('i', cls, { left: px(x), top: px(y - top), width: px(w), height: px(h) });
 
-/** 스켈레톤에 바뀌기 전 로고를 연하게 깔아 둠 (생성 글로우가 지나가면 새 로고로 바뀜) */
+/* ---------- 선명 레이어: 결제창 그리기 ---------- */
+const screen = document.querySelector('.pw');
+let current = STATE_BEFORE;
+function render(state) {
+  current = state;
+  const tabs = el('div', 'tabs');
+  tabs.append(el('span', '', { left: '47px' }, '신용카드'), el('span', 'on', { left: '164px' }, '간편결제'), el('span', '', { left: '281px' }, '계좌이체'), el('b'));
+  const nav = el('div', 'nav');
+  nav.append(...state.nav.map((t, i) => el('span', i === 0 ? 'on' : '', {}, t)));
+  screen.replaceChildren(
+    el('div', 'gs'),
+    ...CARDS.map((c) => box(c, 'card')),
+    tabs,
+    nav,
+    el('div', 'list'),
+    ...state.heads.map((t, i) => el('h4', '', { left: px(56.5), top: px(HEADS[i] - top) }, t)),
+    ...TILES.map((t) => box(tileBox(t), 'tile')),
+    ...state.cards.map((n, i) => logo(n, CARDS[i])),
+    ...state.tiles.map((n, i) => logo(n, tileBox(TILES[i]))),
+  );
+}
+render(STATE_BEFORE);
+
+/* ---------- 스켈레톤: 구조는 반투명으로, 이전 글자·로고는 연하게 ---------- */
 const skel = document.getElementById('skel');
-function setSkeletonLogos(list) {
-  skel.querySelectorAll('.sk-logo').forEach((n) => n.remove());
-  skel.append(...list.map((d) => { const img = logo(d); img.className = 'sk-logo'; return img; }));
+const CARD = { background: 'rgba(255,255,255,.5)' };
+const skBox = ([x, y, w, h], r, style) => el('i', '', { left: px(x), top: px(y - top), width: px(w), height: px(h), borderRadius: px(r), ...style });
+skel.append(
+  skBox([0, 61, 190, 61.1], 0, { background: 'rgba(0,0,0,.04)' }), // 대표 결제수단 영역
+  ...CARDS.map((c) => skBox(c, 3.9, CARD)),
+  skBox([0, 147.7, 49.7, 154], 0, { background: 'rgba(0,0,0,.02)' }), // 나라 탭 열
+  ...TILES.map((t) => skBox(tileBox(t), 3.9, CARD)),
+);
+/** 스켈레톤에 바뀌기 전 상태(나라 글자·지역 제목·로고)를 연하게 깔아 둠 */
+function setSkeletonFrom(state) {
+  skel.querySelectorAll('.sk-prev').forEach((n) => n.remove());
+  skel.append(
+    ...state.nav.map((t, i) => el('span', 'sk-txt sk-prev', { left: 0, top: px(147.7 + 25.6 * i + 6.4 - top), width: px(49.7), textAlign: 'center' }, t)),
+    ...state.heads.map((t, i) => el('span', 'sk-txt h sk-prev', { left: px(56.5), top: px(HEADS[i] - top) }, t)),
+    ...state.cards.map((n, i) => logo(n, CARDS[i], 'sk-logo sk-prev')),
+    ...state.tiles.map((n, i) => logo(n, tileBox(TILES[i]), 'sk-logo sk-prev')),
+  );
 }
 
 /* ---------- 모듈 연결 (서비스에서도 이 형태로 연결) ---------- */
+const phone = document.querySelector('.phone');
 const reveal = new GenerationReveal(document.getElementById('region'));
 const button = new AIButton(document.getElementById('ai'));
-bindAIRecommend(button, reveal, { onBeforeReveal: () => { setSkeletonLogos(current); renderState(true); } }); // 스켈레톤엔 이전 로고를 연하게, 선명 레이어는 AI 추천 화면으로 교체
-document.getElementById('reset').addEventListener('click', () => { reveal.stop(); renderState(false); });
+bindAIRecommend(button, reveal, {
+  // 스켈레톤엔 이전 상태를 연하게, 선명 레이어는 AI 추천 결과로 교체 (Rose 테마는 이번 데모에서 적용하지 않음)
+  onBeforeReveal: () => { setSkeletonFrom(current); render(STATE_AI); },
+});
+const dropdown = new ColorDropdown(document.getElementById('cp'), document.getElementById('cp-panel'), {
+  onSelect: (theme) => { phone.dataset.m3Theme = theme; }, // 칩 이름 = m3-theme.css 테마 이름
+});
+phone.addEventListener('click', () => dropdown.close()); // 바깥 터치 시 닫힘
+document.getElementById('reset').addEventListener('click', () => {
+  reveal.stop();
+  render(STATE_BEFORE);
+  delete phone.dataset.m3Theme;
+});
