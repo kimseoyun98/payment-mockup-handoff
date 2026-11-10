@@ -2,7 +2,9 @@
    데모 전용 스타일 (결제창 목업 배치·스켈레톤 도형)
    서비스에 넣을 때는 필요 없음. 모션 스타일은 ../src/*.css, 색상 토큰은 ../src/m3-theme.css
    좌표는 Figma 190×296 프레임 값을 2배로 키운 값
-   결제창 색은 전부 --md-sys-color-* 역할 변수로 칠함 → .phone[data-m3-theme] 값에 따라 테마가 바뀜
+   결제창 색은 전부 var(--md-sys-color-<역할>, <기존 색>) 형태
+     - 테마 미선택: 두 번째 값(기존 서비스 색)이 그대로 나옴. 데모에선 원래 Figma 결제창 화면(283:246) 색을 넣음
+     - 테마 선택(.phone[data-m3-theme]): src/m3-theme.css 의 토큰 값으로 바뀜
    요소별 역할은 Figma '커스터마이징 적용' 라이트 보드에서 각 레이어에 연결된 토큰을 그대로 따름 (칠이 없는 레이어는 칠하지 않음)
    ========================================================= */
 body { margin: 0; min-height: 100vh; display: grid; place-items: center; gap: 16px; background: #e9ebf0; font-family: system-ui, sans-serif; }
@@ -10,46 +12,46 @@ body { margin: 0; min-height: 100vh; display: grid; place-items: center; gap: 16
 
 .phone {
   position: relative; width: 380px; height: 592px; border-radius: 22px; overflow: hidden;
-  background: var(--md-sys-color-background); box-shadow: 0 6px 30px rgba(0,0,0,.18); /* Figma: 결제창 프레임 fills = Background */
+  background: var(--md-sys-color-background, #ffffff); box-shadow: 0 6px 30px rgba(0,0,0,.18); /* Figma: 결제창 프레임 fills = Background */
   font-family: Pretendard, "Pretendard Variable", system-ui, sans-serif;
 }
 /* 테마가 바뀔 때 색이 부드럽게 넘어가도록 */
 .phone, .phone .pw * { transition: background-color .3s, color .3s, box-shadow .3s; }
 
 /* ---------- 헤더 (Figma y 0~61) ---------- */
-.head { position: absolute; inset: 0 0 auto; height: 122px; background: var(--md-sys-color-surface); }
+.head { position: absolute; inset: 0 0 auto; height: 122px; background: var(--md-sys-color-surface, #ffffff); }
 .head .logo { position: absolute; left: 19.4px; top: 27.8px; width: 117.2px; height: 16.6px; background: url(./assets/screen.png) -19.4px -27.8px / 380px 592px; mix-blend-mode: multiply; } /* 로고는 테마와 무관 → 이미지 그대로 */
 .head .amt { position: absolute; left: 19.4px; right: 19.6px; top: 76px; display: flex; justify-content: space-between; font: 600 17.5px/26px Pretendard, system-ui, sans-serif; }
-.head .amt span:first-child { color: var(--md-sys-color-on-surface); }
-.head .amt span:last-child { color: var(--md-sys-color-primary); }
+.head .amt span:first-child { color: var(--md-sys-color-on-surface, #000000); }
+.head .amt span:last-child { color: var(--md-sys-color-primary, #3c62dd); }
 .phone .globe { position: absolute; left: 276.4px; top: 20px; width: 32px; height: 32px; display: grid; place-items: center; }
 .phone .globe svg { width: 20px; height: 20px; }
 .phone .cp { position: absolute; left: 328.4px; top: 20px; z-index: 20; }
 .phone .cp-trigger { background: transparent; }
 
 /* ---------- Reveal 영역 (Figma y 61~296) ---------- */
-.region { position: absolute; left: 0; top: 122px; width: 380px; height: 470px; --rv-bg: var(--md-sys-color-background); } /* 칠 없는 곳은 프레임 Background가 비침 */
+.region { position: absolute; left: 0; top: 122px; width: 380px; height: 470px; --rv-bg: var(--md-sys-color-background, #ffffff); } /* 칠 없는 곳은 프레임 Background가 비침 */
 .pw { position: relative; width: 100%; height: 100%; }
 .pw > * { position: absolute; }
 /* 대표 결제수단 영역: Surface Container / 카드: Surface Container Lowest + Outline Variant 테두리 */
-.pw .gs { left: 0; top: 0; width: 380px; height: 122.2px; background: var(--md-sys-color-surface-container); }
+.pw .gs { left: 0; top: 0; width: 380px; height: 122.2px; background: var(--md-sys-color-surface-container, #f5f5f5); }
 .pw .card, .pw .tile {
   border-radius: 7.8px; overflow: hidden;
-  background: var(--md-sys-color-surface-container-lowest);
-  box-shadow: inset 0 0 0 1.5px var(--md-sys-color-outline-variant);
+  background: var(--md-sys-color-surface-container-lowest, #ffffff);
+  box-shadow: inset 0 0 0 1.5px var(--md-sys-color-outline-variant, #f5f5f5);
 }
 /* 결제방식 탭: 배경 Background / 글자 On Surface Variant / 선택 글자 On Primary Container / 선택 밑줄 Primary / 아래 선 Outline Variant */
-.pw .tabs { left: 0; top: 122.2px; width: 380px; height: 51.2px; background: var(--md-sys-color-background); /* Figma: 탭 줄은 칠이 없어 바깥 프레임의 Background가 비침 */ box-shadow: inset 0 -2px 0 var(--md-sys-color-outline-variant); }
-.pw .tabs span { position: absolute; top: 19.4px; font: 600 14.6px/1.467 Pretendard, system-ui, sans-serif; letter-spacing: .0096em; color: var(--md-sys-color-on-surface-variant); white-space: nowrap; }
-.pw .tabs span.on { color: var(--md-sys-color-on-primary-container); }
-.pw .tabs b { position: absolute; left: 136.4px; bottom: 0; width: 107.2px; height: 2px; background: var(--md-sys-color-primary); }
+.pw .tabs { left: 0; top: 122.2px; width: 380px; height: 51.2px; background: var(--md-sys-color-background, #fafafa); /* Figma: 탭 줄은 칠이 없어 바깥 프레임의 Background가 비침 */ box-shadow: inset 0 -2px 0 var(--md-sys-color-outline-variant, #eeeeee); }
+.pw .tabs span { position: absolute; top: 19.4px; font: 600 14.6px/1.467 Pretendard, system-ui, sans-serif; letter-spacing: .0096em; color: var(--md-sys-color-on-surface-variant, #bdbdbd); white-space: nowrap; }
+.pw .tabs span.on { color: var(--md-sys-color-on-primary-container, #212121); }
+.pw .tabs b { position: absolute; left: 136.4px; bottom: 0; width: 107.2px; height: 2px; background: var(--md-sys-color-primary, #212121); }
 /* 나라 탭: 행 Surface Container Low + On Surface Variant / 선택 행 Primary Container + On Primary Container */
 .pw .nav { left: 0; top: 173.4px; width: 99.4px; height: 296.6px; } /* Figma: 사이드바 자체는 칠 없음, 행마다 색 */
-.pw .nav span { display: block; height: 51.2px; text-align: center; font: 500 13.6px/51.2px Pretendard, system-ui, sans-serif; color: var(--md-sys-color-on-surface-variant); background: var(--md-sys-color-surface-container-low); }
-.pw .nav span.on { background: var(--md-sys-color-primary-container); color: var(--md-sys-color-on-primary-container); }
+.pw .nav span { display: block; height: 51.2px; text-align: center; font: 500 13.6px/51.2px Pretendard, system-ui, sans-serif; color: var(--md-sys-color-on-surface-variant, #9e9e9e); background: var(--md-sys-color-surface-container-low, #fafafa); }
+.pw .nav span.on { background: var(--md-sys-color-primary-container, #ffffff); color: var(--md-sys-color-on-primary-container, #3c62dd); }
 /* 결제수단 목록: 배경 Surface / 지역 제목 On Surface */
-.pw .list { left: 99.4px; top: 173.4px; width: 280.6px; height: 296.6px; background: var(--md-sys-color-surface); }
-.pw h4 { margin: 0; font: 500 15.6px/1.5 Pretendard, system-ui, sans-serif; color: var(--md-sys-color-on-surface); }
+.pw .list { left: 99.4px; top: 173.4px; width: 280.6px; height: 296.6px; background: var(--md-sys-color-surface, #ffffff); }
+.pw h4 { margin: 0; font: 500 15.6px/1.5 Pretendard, system-ui, sans-serif; color: var(--md-sys-color-on-surface, #212121); }
 .pw .logo-img { position: absolute; mix-blend-mode: multiply; } /* 로고 이미지의 흰 배경이 칸 색을 가리지 않게 */
 
 /* ---------- 스켈레톤 (src/generation-reveal.css 의 작성 규칙 참고) ---------- */

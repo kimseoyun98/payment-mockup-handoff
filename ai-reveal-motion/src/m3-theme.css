@@ -8,21 +8,8 @@
    테마 이름 = 컬러 드롭다운 칩의 data-color 값과 같음 (Rose는 AI 추천 프리셋용, 칩 없음)
    ========================================================= */
 
-/* 테마 미선택(기본) = 원래 페이버스 결제창 색. Figma 토큰이 아니라 현재 화면 색을 같은 역할 이름에 맞춘 값 */
-:root, [data-m3-theme] {
-  --md-sys-color-primary: #3c62dd;
-  --md-sys-color-on-primary: #ffffff;
-  --md-sys-color-primary-container: #ffffff;
-  --md-sys-color-on-primary-container: #3c62dd;
-  --md-sys-color-background: #fafafa;
-  --md-sys-color-surface: #ffffff;
-  --md-sys-color-on-surface: #212121;
-  --md-sys-color-on-surface-variant: #9e9e9e;
-  --md-sys-color-outline-variant: #f5f5f5;
-  --md-sys-color-surface-container-lowest: #ffffff;
-  --md-sys-color-surface-container-low: #fafafa;
-  --md-sys-color-surface-container: #f5f5f5;
-}
+/* 테마를 고르지 않았을 때는 이 파일이 아무 값도 정하지 않음 → 기존 서비스 코드의 색이 그대로 나옴
+   요소 색은 var(--md-sys-color-<역할>, <기존 색>) 처럼 기존 색을 두 번째 값으로 둘 것 */
 
 [data-m3-theme="Baseline"] {
   --md-sys-color-primary: #7049d9;

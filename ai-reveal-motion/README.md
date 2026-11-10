@@ -113,8 +113,13 @@ Figma 변수 컬렉션 **M3 · Palette**(테마별 실제 색)와 **M3 · Theme*
 
 - 결제창 루트에 `data-m3-theme="Pink"`처럼 테마 이름을 붙이면 `--md-sys-color-*` 변수가 바뀜
 - 테마 이름 = 컬러 드롭다운 칩의 `data-color` 값: `Baseline` `Green` `Monochrome` `Pink` `Mint` `Orange` `Blue` (+ `Rose`: AI 추천 프리셋용, 칩 없음)
-- 테마를 안 붙이면 원래 페이버스 결제창 색 (Figma 토큰이 아니라 현재 화면 색을 같은 역할 이름에 맞춘 값)
-- UI에는 색상값 대신 **역할 변수만** 씀. CSS가 아닌 환경(React Native·Flutter 등)은 `src/m3-theme.json` 사용
+- 테마를 안 고르면 토큰 파일은 아무 값도 정하지 않음 → **기존 서비스 코드의 색이 그대로** 나옴
+- 기존 코드의 색 지정을 `var(--md-sys-color-<역할>, <기존 색>)`으로 바꾸면 됨. 역할은 아래 표대로
+  ```css
+  /* 기존 */ .amount { color: #3c62dd; }
+  /* 변경 */ .amount { color: var(--md-sys-color-primary, #3c62dd); }
+  ```
+- CSS가 아닌 환경(React Native·Flutter 등)은 `src/m3-theme.json` 사용 (테마 미선택이면 기존 색 유지)
 
 ```js
 new ColorDropdown(trigger, panel, {
@@ -144,8 +149,7 @@ new ColorDropdown(trigger, panel, {
 
 - 위 표는 Figma 레이어에 연결된 토큰을 그대로 옮긴 것. 칠이 없는 레이어(결제방식 탭 줄, 나라 탭 열 컨테이너 등)는 칠하지 않고 바탕 Background가 비치게 둠
 - AI 추천 버튼, 컬러칩, 로고, Reveal 글로우 색은 테마와 무관하게 고정
-- 테마 미선택 기본값(`:root`)은 Figma에 없는 값: 원래 페이버스 화면 색을 같은 역할 이름에 맞춰 넣은 임시값
-- 데모 적용 예: `demo/demo.css` (모든 결제창 색이 역할 변수로 칠해져 있음)
+- 데모 적용 예: `demo/demo.css` (모든 결제창 색이 `var(--역할, 기존 색)` 형태. 데모의 기존 색 = 원래 Figma 결제창 화면 색)
 
 ## 접근성
 - `prefers-reduced-motion: reduce`이면 Reveal은 애니메이션 없이 바로 최종 화면으로 바뀜
