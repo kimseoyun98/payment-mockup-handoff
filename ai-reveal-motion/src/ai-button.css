@@ -1,0 +1,46 @@
+/* =========================================================
+   AI 추천 버튼
+   마크업:
+   <button class="ai-btn">
+     <span class="ai-icon-wrap">
+       <svg class="ai-icon"> <path class="ai-star-s"/> <path class="ai-star-l"/> </svg>
+     </span>
+     <span class="ai-sheen" aria-hidden="true"></span>
+     <span class="ai-labels"><span class="ai-label">AI 추천</span></span>
+   </button>
+   크기: Figma 55×24 버튼을 2배로 그린 값 (높이 48 = 동그라미 지름)
+   ========================================================= */
+.ai-btn {
+  position: relative;
+  overflow: hidden; /* 줄어들 때 글자가 밖으로 안 보이게 */
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 16px 20px 16px 18px;
+  border: 0;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #cbdffa, #e1d8ff);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.ai-icon-wrap { position: relative; display: block; width: 16px; height: 16px; flex: none; }
+.ai-icon { display: block; width: 16px; height: 16px; }
+.ai-icon path { transform-box: fill-box; transform-origin: center; } /* 별 각각 제자리에서 커졌다 작아지게 */
+.ai-labels { display: grid; }
+.ai-labels > span {
+  grid-area: 1 / 1;
+  font: 600 16px/1 "Wanted Sans Variable", "Wanted Sans", Pretendard, system-ui, sans-serif;
+  white-space: nowrap;
+  background: linear-gradient(90deg, #135fcd, #6d50cb); /* 파랑 → 보라 그라데이션 글자 */
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+/* 로딩 중 지나가는 빛 (평소엔 버튼 왼쪽 밖에 숨어 있음). 넓고 흐릿하게 → 은은한 빛 */
+.ai-sheen {
+  position: absolute; top: 0; bottom: 0; left: 0; width: 70%;
+  pointer-events: none;
+  filter: blur(6px);
+  background: linear-gradient(90deg, rgba(255,255,255,0), rgba(255,255,255,.35), rgba(255,255,255,0));
+  transform: translateX(-110%);
+}
