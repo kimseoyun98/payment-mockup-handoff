@@ -1,0 +1,34 @@
+/* =========================================================
+   AI Generating Reveal
+   마크업:
+   <div class="rv-root">
+     <div class="rv-skel"><canvas class="rv-ambient"></canvas> ...스켈레톤 도형... </div>
+     <div class="rv-sharp"> ...실제 콘텐츠... </div>
+     <div class="rv-blur"></div>
+     <!-- (선택) <div class="rv-keep"> ...안 바뀌는 부분... </div> -->
+     <canvas class="rv-canvas"></canvas>
+   </div>
+   레이어 순서: 스켈레톤(0) < 선명(1) < 블러(2) < 고정 영역(3) < 글로우(4)
+   ========================================================= */
+.rv-root {
+  position: relative;
+  overflow: hidden;
+  --rv-bg: #fff; /* 콘텐츠 영역 배경색과 맞출 것 */
+}
+.rv-skel, .rv-blur, .rv-canvas { position: absolute; inset: 0; pointer-events: none; }
+.rv-skel { z-index: 0; background: var(--rv-bg); }
+.rv-skel > * { position: absolute; } /* 스켈레톤 도형은 좌표로 배치 */
+.rv-ambient { inset: 0; width: 100%; height: 100%; } /* 스켈레톤 뒤 배경 빛 (스켈레톤 첫 자식) */
+.rv-sharp { position: relative; z-index: 1; height: 100%; background: var(--rv-bg); }
+.rv-blur { z-index: 2; background: var(--rv-bg); filter: blur(var(--rv-content-blur, 8px)); }
+.rv-keep { position: absolute; z-index: 3; pointer-events: none; }
+.rv-canvas { z-index: 4; width: 100%; height: 100%; }
+.rv-root [hidden] { display: none !important; }
+
+/* 스켈레톤 도형 작성 규칙 (이번 결제창에서 정한 톤)
+   - 배경·카드·타일 같은 구조는 실제 화면과 같은 밝기의 "반투명"으로 → 뒤 배경 빛이 비침
+       회색 배경 #F5F5F5 → rgba(0,0,0,.04) / #FAFAFA → rgba(0,0,0,.02) / 흰 카드 → rgba(255,255,255,.5), 테두리 없음
+   - 글자는 지우지 말고 연하게: rgba(33,33,33,.16), 선택 강조 없이 모두 같은 색
+   - 선택 밑줄 같은 꽉 찬 선은 같은 색이면 더 진해 보여서 한 단계 연하게: rgba(33,33,33,.1)
+   - 구분선(stroke)은 뺌
+   - 바뀌기 전 로고는 흑백 + 투명도 .22로 남김 */
