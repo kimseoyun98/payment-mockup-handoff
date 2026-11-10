@@ -126,6 +126,7 @@ new ColorDropdown(trigger, panel, {
 
 | 요소 | 속성 | 토큰 (CSS 변수) |
 |---|---|---|
+| 결제창 전체 바탕 (칠 없는 영역에 비침) | 배경 | Background (`--md-sys-color-background`) |
 | 헤더 배경, 결제수단 목록 영역 배경 | 배경 | Surface (`--md-sys-color-surface`) |
 | "결제 금액", 지역 제목(중국·한국), 상태바 | 글자 | On Surface (`--md-sys-color-on-surface`) |
 | 금액 "10,000원" | 글자 | Primary (`--md-sys-color-primary`) |
@@ -141,7 +142,9 @@ new ColorDropdown(trigger, panel, {
 | 나라 탭 행 (선택됨) | 배경 / 글자 | Primary Container / On Primary Container |
 | 하단 [결제하기] 버튼 | 배경 / 글자 | Primary / On Primary |
 
+- 위 표는 Figma 레이어에 연결된 토큰을 그대로 옮긴 것. 칠이 없는 레이어(결제방식 탭 줄, 나라 탭 열 컨테이너 등)는 칠하지 않고 바탕 Background가 비치게 둠
 - AI 추천 버튼, 컬러칩, 로고, Reveal 글로우 색은 테마와 무관하게 고정
+- 테마 미선택 기본값(`:root`)은 Figma에 없는 값: 원래 페이버스 화면 색을 같은 역할 이름에 맞춰 넣은 임시값
 - 데모 적용 예: `demo/demo.css` (모든 결제창 색이 역할 변수로 칠해져 있음)
 
 ## 접근성

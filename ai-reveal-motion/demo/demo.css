@@ -3,13 +3,14 @@
    서비스에 넣을 때는 필요 없음. 모션 스타일은 ../src/*.css, 색상 토큰은 ../src/m3-theme.css
    좌표는 Figma 190×296 프레임 값을 2배로 키운 값
    결제창 색은 전부 --md-sys-color-* 역할 변수로 칠함 → .phone[data-m3-theme] 값에 따라 테마가 바뀜
+   요소별 역할은 Figma '커스터마이징 적용' 라이트 보드에서 각 레이어에 연결된 토큰을 그대로 따름 (칠이 없는 레이어는 칠하지 않음)
    ========================================================= */
 body { margin: 0; min-height: 100vh; display: grid; place-items: center; gap: 16px; background: #e9ebf0; font-family: system-ui, sans-serif; }
 .hint { color: #6b7280; font-size: 13px; }
 
 .phone {
   position: relative; width: 380px; height: 592px; border-radius: 22px; overflow: hidden;
-  background: var(--md-sys-color-surface); box-shadow: 0 6px 30px rgba(0,0,0,.18);
+  background: var(--md-sys-color-background); box-shadow: 0 6px 30px rgba(0,0,0,.18); /* Figma: 결제창 프레임 fills = Background */
   font-family: Pretendard, "Pretendard Variable", system-ui, sans-serif;
 }
 /* 테마가 바뀔 때 색이 부드럽게 넘어가도록 */
@@ -27,7 +28,7 @@ body { margin: 0; min-height: 100vh; display: grid; place-items: center; gap: 16
 .phone .cp-trigger { background: transparent; }
 
 /* ---------- Reveal 영역 (Figma y 61~296) ---------- */
-.region { position: absolute; left: 0; top: 122px; width: 380px; height: 470px; --rv-bg: var(--md-sys-color-surface); }
+.region { position: absolute; left: 0; top: 122px; width: 380px; height: 470px; --rv-bg: var(--md-sys-color-background); } /* 칠 없는 곳은 프레임 Background가 비침 */
 .pw { position: relative; width: 100%; height: 100%; }
 .pw > * { position: absolute; }
 /* 대표 결제수단 영역: Surface Container / 카드: Surface Container Lowest + Outline Variant 테두리 */
@@ -43,7 +44,7 @@ body { margin: 0; min-height: 100vh; display: grid; place-items: center; gap: 16
 .pw .tabs span.on { color: var(--md-sys-color-on-primary-container); }
 .pw .tabs b { position: absolute; left: 136.4px; bottom: 0; width: 107.2px; height: 2px; background: var(--md-sys-color-primary); }
 /* 나라 탭: 행 Surface Container Low + On Surface Variant / 선택 행 Primary Container + On Primary Container */
-.pw .nav { left: 0; top: 173.4px; width: 99.4px; height: 296.6px; background: var(--md-sys-color-surface-container-low); }
+.pw .nav { left: 0; top: 173.4px; width: 99.4px; height: 296.6px; } /* Figma: 사이드바 자체는 칠 없음, 행마다 색 */
 .pw .nav span { display: block; height: 51.2px; text-align: center; font: 500 13.6px/51.2px Pretendard, system-ui, sans-serif; color: var(--md-sys-color-on-surface-variant); background: var(--md-sys-color-surface-container-low); }
 .pw .nav span.on { background: var(--md-sys-color-primary-container); color: var(--md-sys-color-on-primary-container); }
 /* 결제수단 목록: 배경 Surface / 지역 제목 On Surface */
