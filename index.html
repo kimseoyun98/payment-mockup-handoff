@@ -199,8 +199,10 @@ const SETTLED=[];
 function settle(a){const el=a.effect.target;const props=[...new Set(a.effect.getKeyframes().flatMap(k=>Object.keys(k)).filter(p=>!['offset','easing','composite','computedOffset'].includes(p)))].map(p=>p.replace(/[A-Z]/g,m=>'-'+m.toLowerCase()));
   a.finished.then(()=>{props.forEach(p=>SETTLED.push([el,p,el.style.getPropertyValue(p)]));a.commitStyles();a.cancel();}).catch(()=>{});return a;}
 function unsettle(){while(SETTLED.length){const [el,p,v]=SETTLED.pop();if(v)el.style.setProperty(p,v);else el.style.removeProperty(p);}}
-const A=(e,kf,dur,delay=0,ez='in',opt={})=>{const a=e.animate(kf,{duration:dur,delay:delay,easing:EZ[ez]||ez,fill:'both',...opt});anims.add(a);if(opt.iterations!==Infinity)settle(a);return a;};
-const wait=ms=>new Promise(r=>setTimeout(r,ms));
+// 재생 속도: SPEED배 빠르게 (모든 애니메이션·대기·캡슐 모션에 공통 적용)
+const SPEED=2;
+const A=(e,kf,dur,delay=0,ez='in',opt={})=>{const a=e.animate(kf,{duration:dur/SPEED,delay:delay/SPEED,easing:EZ[ez]||ez,fill:'both',...opt});anims.add(a);if(opt.iterations!==Infinity)settle(a);return a;};
+const wait=ms=>new Promise(r=>setTimeout(r,ms/SPEED));
 const P=([x,y])=>({left:X(x)+'px',top:Y(y)+'px'});
 const LP=([x,y])=>({left:X(x)+'px',top:Y(y)+'px'});
 
@@ -233,14 +235,16 @@ async function run(){
   A(L.load,[{...lp5,opacity:0},{...lp5,opacity:1}],240,0,'move');
   const t0=performance.now();
   let raf5=true;
-  (function loop5(now){if(!alive()||!raf5)return;render2B(L.load,(now-t0)/1000,null);requestAnimationFrame(loop5);})(t0);
-  await wait(1650);if(!alive())return;
+  // 결제 진행 중은 SPEED와 별개로 천천히: 첫 회전(0.46s) + 회전 2번(0.44s×2) = 모션 1.34s를 0.75배속으로 재생 (실제 약 1.8초)
+  const LOAD_RATE=.75,LOAD_T=.46+.44*2;
+  (function loop5(now){if(!alive()||!raf5)return;render2B(L.load,Math.min(LOAD_T,(now-t0)/1000*LOAD_RATE),null);requestAnimationFrame(loop5);})(t0);
+  await new Promise(r=>setTimeout(r,LOAD_T/LOAD_RATE*1000));if(!alive())return;
   raf5=false;
   // 결제 진행 중 → 결제 성공: 화면 교차 페이드 후 6번 자리에서 3D 캡슐 중앙 합체 + 하단 서클 라이징 + 체크 드로잉
   A(L.load,[{...lp5,opacity:1},{...lp5,opacity:0}],160,0,'out');show(L.g6,280);
   const t1=performance.now();
   let raf6=true;
-  (function loop6(now){if(!alive()||!raf6)return;render2B(L.ok,.48+(now-t1)/1000,.72);requestAnimationFrame(loop6);})(t1);
+  (function loop6(now){if(!alive()||!raf6)return;render2B(L.ok,.48+(now-t1)/1000*SPEED,.72);requestAnimationFrame(loop6);})(t1);
   await wait(1650);raf6=false;if(!alive())return;
   A(L.white,[{opacity:0},{opacity:1}],720,0,'move');await wait(880+800);if(!alive())return;
   run();
