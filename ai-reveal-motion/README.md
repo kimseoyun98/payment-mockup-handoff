@@ -132,6 +132,7 @@ new ColorDropdown(trigger, panel, {
 | 대표 결제수단 영역 | 배경 | Surface Container (`--md-sys-color-surface-container`) |
 | 대표 결제수단 카드, 결제수단 타일 | 배경 | Surface Container Lowest (`--md-sys-color-surface-container-lowest`) |
 | 〃 | 테두리 | Outline Variant (`--md-sys-color-outline-variant`) |
+| 결제방식 탭 줄 | 배경 | Background (`--md-sys-color-background`) — 탭 줄 자체엔 칠이 없고, 바깥 결제창 프레임의 Background가 비침 |
 | 결제방식 탭 줄 | 아래 선 | Outline Variant |
 | 결제방식 탭 (선택 안 됨) | 글자 | On Surface Variant (`--md-sys-color-on-surface-variant`) |
 | 결제방식 탭 (선택됨) | 글자 | On Primary Container (`--md-sys-color-on-primary-container`) |
@@ -140,7 +141,6 @@ new ColorDropdown(trigger, panel, {
 | 나라 탭 행 (선택됨) | 배경 / 글자 | Primary Container / On Primary Container |
 | 하단 [결제하기] 버튼 | 배경 / 글자 | Primary / On Primary |
 
-- 결제방식 탭 줄 배경은 Figma에서 칠이 없어(뒤가 비침) 데모에서는 Surface Container Low로 칠했습니다
 - AI 추천 버튼, 컬러칩, 로고, Reveal 글로우 색은 테마와 무관하게 고정
 - 데모 적용 예: `demo/demo.css` (모든 결제창 색이 역할 변수로 칠해져 있음)
 
