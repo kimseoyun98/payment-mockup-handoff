@@ -22,8 +22,8 @@
  * @param {import('./generation-reveal.js').GenerationReveal} reveal
  * @param {{
  *   chat?: import('./ai-chat.js').AIChatPanel,
- *   prompt?: string,
- *   steps?: { loading: string, done: string }[],
+ *   prompt?: string | (() => string),
+ *   steps?: { loading: string, done: string }[] | (() => { loading: string, done: string }[]),
  *   onBeforeReveal?: () => any,
  *   onSweepStart?: () => any,
  *   onAfterReveal?: () => any,
@@ -46,7 +46,10 @@ export function bindAIRecommend(button, reveal, { chat, prompt, steps = [], onBe
       await button.press();
       let closing;
       if (chat) {
-        const done = await chat.run({ prompt, steps, onSent: startLoading, close: false });
+        // prompt · steps가 함수면 누르는 순간 값을 읽음 (언어 전환 등으로 대사가 바뀌는 경우)
+        const p = typeof prompt === 'function' ? prompt() : prompt;
+        const st = typeof steps === 'function' ? steps() : steps;
+        const done = await chat.run({ prompt: p, steps: st, onSent: startLoading, close: false });
         if (!done || id !== run) return; // X·바깥 터치로 닫힘 → Reveal 없이 버튼만 원래대로 (finally)
         closing = chat.close(); // 채팅창이 닫히는 동안 아래에서 화면이 스켈레톤으로 넘어가기 시작 (겹쳐서 실행)
       } else startLoading();

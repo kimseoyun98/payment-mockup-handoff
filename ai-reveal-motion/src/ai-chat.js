@@ -51,6 +51,9 @@ export class AIChatPanel {
     this.text = panel.querySelector('.aic-text');
     this.ph = panel.querySelector('.aic-ph');
     this.sendBtn = panel.querySelector('.aic-send');
+    // 대화가 길어져 대화 영역이 넘치면 항상 맨 아래(가장 최근 줄)가 보이게
+    const body = panel.querySelector('.aic-body');
+    new MutationObserver(() => { body.scrollTop = body.scrollHeight; }).observe(this.msgs, { childList: true, subtree: true, characterData: true });
     this.phase = 'idle'; // 'busy' 글 나오는 중 | 'wait' 다음으로 넘길 터치 대기 | 'idle'
     this.skipping = false;
     this.cancelled = false;
@@ -200,7 +203,7 @@ export class AIChatPanel {
   }
 
   /**
-   * 분석 단계: [{ loading: '고객 데이터 분석 중…', done: '중화권 고객 비중 70% 이상' }, ...]
+   * 분석 단계: [{ loading: 'BackOffice 데이터 접근 중…', done: 'BackOffice 데이터 접근 완료' }, ...]
    * 생각 중 표시(별 아이콘 + 문구)는 한 줄만 나오고, 단계마다 문구만 바뀜
    *   → stepLoading 동안 생각 중 → 결과 문구가 그 위에 한 글자씩 써짐 → 다음 단계
    *   → 마지막 단계가 끝나면 생각 중 표시가 사라짐

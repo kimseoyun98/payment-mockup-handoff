@@ -55,8 +55,9 @@ const recommend = bindAIRecommend(createAIButton(root), reveal, {
   chat: createAIChat(root, { tapToAdvance: true }),  // 빼면 채팅 없이 바로 Reveal
   prompt: '우리회사 코어 타겟군과 실제 결제 수단 선택률에 맞게 결제창 세팅해줘',
   steps: [
-    { loading: '고객 데이터 분석 중…', done: '중화권 고객 비중 70% 이상' },
-    { loading: '결제 수단 선택률 확인 중…', done: '선택률 확인 완료' },
+    { loading: 'BackOffice 데이터 접근 중…', done: 'BackOffice 데이터 접근 완료' },
+    { loading: '결제 데이터 11,842건 분석 중…', done: '중화권 고객 비중 74.2%' },
+    // … 데모 대사 전체(국문 · 영문)는 demo/demo.js 의 CHAT_TEXT
   ],
   once: true,                  // 한 번 적용되면 AI 추천 버튼이 사라짐
   onBeforeReveal: async () => { /* ★ 결제창 내용을 추천 결과로 교체 + 스켈레톤 준비 */ },
@@ -179,4 +180,4 @@ AI 추천 버튼, 채팅 모달, 로고, Reveal 글로우 색은 테마와 무�
 
 - 부모 → 데모: `{type:'ai-demo:reset'}` 처음 화면으로 · `{type:'ai-demo:lang', lang:'ko'|'en'}` 결제창 글자 언어 전환
 - 데모 → 부모: 헤더 지구본을 누르면 `{type:'ai-demo:toggle-lang'}` (부스가 전체 언어를 바꾸고 `ai-demo:lang`으로 다시 알려 줌). 단독으로 열었을 때는 지구본이 결제창 언어를 바로 바꿈
-- 영어 문구는 퍼즐 프로젝트 EN 스토리보드(`video-mockup/assets/sb2-en.png`, `sb-list-en.png`) 기준입니다. 싱가포르·베트남은 스토리보드에 없어 국가 영문명(Singapore, Vietnam)을 씁니다. AI 채팅 대사는 번역이 확정되지 않아 한국어로 둡니다.
+- 영어 문구는 퍼즐 프로젝트 EN 스토리보드(`video-mockup/assets/sb2-en.png`, `sb-list-en.png`) 기준입니다. 싱가포르·베트남은 스토리보드에 없어 국가 영문명(Singapore, Vietnam)을 씁니다. AI 채팅 대사(버튼 글자 · 입력창 안내 · 요청 문장 · 단계 5개)는 번역 시트 기준 국문 · 영문이 `demo/demo.js`의 `CHAT_TEXT`에 있고, 언어 전환을 따라 바뀝니다. `bindAIRecommend`의 `prompt` · `steps`는 함수로도 넘길 수 있어 누르는 순간의 언어로 읽습니다.

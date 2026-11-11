@@ -82,7 +82,7 @@ body { margin: 0; min-height: 100vh; display: grid; place-items: center; gap: 16
 .phone .ai-btn { position: absolute; right: 16px; top: 528px; z-index: 10; }
 
 /* ---------- AI 채팅창 위치: AI 추천 버튼 바로 위, 오른쪽 끝 맞춤 ---------- */
-.phone .aic { right: 16px; bottom: 76px; } /* 겹침 순서는 기본값 --aic-z: 30 (팔레트 20·AI 버튼 10 위) */
+.phone .aic { right: 16px; bottom: 76px; --aic-max-h: calc(100% - 76px - 16px); } /* 위로 결제창 안 16px까지만 */ /* 겹침 순서는 기본값 --aic-z: 30 (팔레트 20·AI 버튼 10 위) */
 
 /* 테마가 바뀔 때(AI 추천 적용·색상 드롭다운) 색이 툭 바뀌지 않고 0.45s 동안 넘어감 (Reveal 시작 크로스페이드와 같은 시간) */
 /* AI 버튼·채팅창은 제외 (자체 모션 유지) */

@@ -57,7 +57,7 @@ const box = ([x, y, w, h], cls) => el('i', cls, { left: px(x), top: px(y - top),
 
 /* ---------- 언어: 한국어 / 영어 ----------
    영어 문구는 퍼즐 프로젝트 EN 스토리보드(video-mockup/assets/sb2-en.png, sb-list-en.png) 기준.
-   싱가포르·베트남은 스토리보드에 없어 국가 영문명 그대로 씀. AI 채팅 대사는 번역 확정 전이라 한국어 유지 */
+   싱가포르·베트남은 스토리보드에 없어 국가 영문명 그대로 씀. AI 채팅 대사(CHAT_TEXT)는 번역 시트 기준 */
 let LANG = 'ko';
 const EN = {
   '결제 금액': 'Payment Amount', '10,000원': '10,000 won',
@@ -72,6 +72,7 @@ function setLang(lang) {
   document.documentElement.lang = LANG;
   document.querySelectorAll('[data-ko]').forEach((n) => { n.textContent = tr(n.dataset.ko); });
   render(current);
+  setChatLang();
 }
 // HTML에 직접 적힌 글자(헤더 결제 금액, 스켈레톤 탭)는 원문을 data-ko로 기억해 두고 바꿈
 document.querySelectorAll('.head .amt span, .sk-tabs span').forEach((n) => { n.dataset.ko = n.textContent; });
@@ -133,14 +134,46 @@ const revealLayers = [...document.querySelectorAll('#region .rv-sharp, #region .
 const headerParts = [...document.querySelectorAll('.phone .head, .phone .globe, .phone .cp')]; // Reveal 영역 밖에서 색이 바뀌는 부분
 
 // 3) AI 추천 버튼 + 채팅창 + 연결
-const recommend = bindAIRecommend(createAIButton(phone), reveal, {
-  // 채팅창: 창 안 터치 → 글이 나오는 중이면 바로 완성, 다 나온 뒤면 다음으로 / X·창 바깥 터치 → 닫기
-  chat: createAIChat(phone, { tapToAdvance: true }),
-  prompt: '우리회사 코어 타겟군과 실제 결제 수단 선택률에 맞게 결제창 세팅해줘',
-  steps: [
-    { loading: '고객 데이터 분석 중…', done: '중화권 고객 비중 70% 이상' },
-    { loading: '결제 수단 선택률 확인 중…', done: '선택률 확인 완료' },
-  ],
+// AI 모달 대사 = 번역 시트 기준 (국문 · 영문). 단계마다 loading = 생각 중 문구, done = 결과 문구
+const CHAT_TEXT = {
+  ko: {
+    label: 'AI 추천',
+    placeholder: '무엇을 도와드릴까요?',
+    prompt: '우리회사 코어 타겟군과 실제 결제 수단 선택률에 맞게 결제창 세팅해줘',
+    steps: [
+      { loading: 'BackOffice 데이터 접근 중…', done: 'BackOffice 데이터 접근 완료' },
+      { loading: '결제 데이터 11,842건 분석 중…', done: '중화권 고객 비중 74.2%' },
+      { loading: '결제 수단별 결제율 조회 중…', done: 'Alipay 43%, WeChat Pay 37% 등' },
+      { loading: '웹사이트 스캐닝 중…', done: '로고 및 브랜드 톤엔 매너 감지' },
+      { loading: '대표 컬러(Hex Code) 추출 중…', done: '#CC3B54 컬러 추출 완료' },
+    ],
+  },
+  en: {
+    label: 'AI Recommendation',
+    placeholder: 'How can I help you?',
+    prompt: 'Optimize our checkout based on target customers and its actual payment preferences',
+    steps: [
+      { loading: 'Accessing BackOffice data…', done: 'BackOffice data access complete' },
+      { loading: 'Analyzing 11,842 payment transactions…', done: '74.2% of total customers are from China.' },
+      { loading: 'Retrieving payment success rates by payment method…', done: 'Alipay 43%, WeChat Pay 37%, etc.' },
+      { loading: 'Scanning website…', done: 'Detecting logo and brand identity' },
+      { loading: 'Extracting brand color (Hex Code)…', done: 'Color #CC3B54 successfully extracted' },
+    ],
+  },
+};
+const aiButton = createAIButton(phone, { label: CHAT_TEXT.ko.label });
+// 채팅창: 창 안 터치 → 글이 나오는 중이면 바로 완성, 다 나온 뒤면 다음으로 / X·창 바깥 터치 → 닫기
+const aiChat = createAIChat(phone, { tapToAdvance: true, placeholder: CHAT_TEXT.ko.placeholder });
+/** 버튼 글자 · 입력창 안내 문구를 지금 언어로 (요청 문장 · 단계 대사는 누르는 순간 지금 언어로 읽음) */
+function setChatLang() {
+  const t = CHAT_TEXT[LANG];
+  aiButton.label.textContent = t.label;
+  aiChat.ph.textContent = t.placeholder;
+}
+const recommend = bindAIRecommend(aiButton, reveal, {
+  chat: aiChat,
+  prompt: () => CHAT_TEXT[LANG].prompt,
+  steps: () => CHAT_TEXT[LANG].steps,
   once: true, // 한 번 적용되면 AI 추천 버튼이 사라짐
   // 내용 교체: 스켈레톤엔 이전 상태를 연하게, 선명 레이어는 AI 추천 결과로 + 새 내용에만 Rose 테마
   //   → 글로우가 쓸고 지나간 자리부터 Rose 색으로 드러남
