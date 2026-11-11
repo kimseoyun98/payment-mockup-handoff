@@ -4,7 +4,7 @@
 
 | 폴더 | 내용 | 용도 |
 |---|---|---|
-| [`booth-motion/`](booth-motion/) | 부스 터치 화면 1 → 8 인트로 흐름 (결제창 체험 전 단계, KR/EN) | 부스 키오스크 앱(Electron)에 띄우는 체험 전 화면 |
+| [`booth-motion/`](booth-motion/) | 부스 터치 화면 1 → 8 전체 흐름 (KR/EN). 4번은 `video-mockup`, 8번은 `ai-reveal-motion` 데모를 그대로 불러옴 | 부스 키오스크 앱(Electron)에 띄우는 화면 |
 | [`video-mockup/`](video-mockup/) | 부스 영상용 결제 흐름 목업 (KR/EN, 결제 진행 중·완료 3D 캡슐 모션 포함) | 부스 키오스크 앱(Electron)에 그대로 띄우는 화면 |
 | [`ai-reveal-motion/`](ai-reveal-motion/) | AI 추천 버튼 + AI Generating Reveal 모션, 결제창 컬러 변경 드롭다운, M3 색상 테마 토큰 | 실제 서비스 코드에 옮겨 넣을 모션 참고 구현 |
 

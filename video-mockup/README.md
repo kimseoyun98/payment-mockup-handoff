@@ -41,3 +41,10 @@ export default function CheckoutModal() {
   );
 }
 ```
+
+## 부스 화면에 끼워 넣기 (`?embed`)
+
+`booth-motion/` 4번 화면이 `../video-mockup/?embed`로 이 페이지를 불러옵니다. embed 모드에서는 목업 화면(126 × 265)만 창에 꽉 차게 그리고, 언어 버튼이 없으며, 스스로 재생하지 않습니다.
+
+- 부모 → 이 페이지: `{type:'video-mockup:play', lang:'ko'|'en'}` 처음부터 1회 재생 · `{type:'video-mockup:stop'}` 멈추고 첫 화면으로
+- 이 페이지 → 부모: `{type:'video-mockup:end'}` 결제 성공까지 끝남 (마지막 흰 화면 전환은 부스 쪽에서)

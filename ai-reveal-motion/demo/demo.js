@@ -55,22 +55,43 @@ const logo = (name, [x, y, w, h], cls = 'logo-img') => {
 const tileBox = ([x, y]) => [x, y, 40.9, 30.2];
 const box = ([x, y, w, h], cls) => el('i', cls, { left: px(x), top: px(y - top), width: px(w), height: px(h) });
 
+/* ---------- 언어: 한국어 / 영어 ----------
+   영어 문구는 퍼즐 프로젝트 EN 스토리보드(video-mockup/assets/sb2-en.png, sb-list-en.png) 기준.
+   싱가포르·베트남은 스토리보드에 없어 국가 영문명 그대로 씀. AI 채팅 대사는 번역 확정 전이라 한국어 유지 */
+let LANG = 'ko';
+const EN = {
+  '결제 금액': 'Payment Amount', '10,000원': '10,000 won',
+  '신용카드': 'Credit Card', '간편결제': 'Easy Payment', '계좌이체': 'Bank Transfer',
+  '글로벌': 'Global', '중국': 'China', '홍콩': 'Hong Kong', '한국': 'South Korea', '인도네시아': 'Indonesia', '말레이시아': 'Malaysia',
+  '태국': 'Thailand', '싱가포르': 'Singapore', '베트남': 'Vietnam',
+};
+const tr = (ko) => (LANG === 'en' ? EN[ko] ?? ko : ko);
+/** 결제창 글자를 한국어/영어로 바꿈 (지금 보이는 결제수단 상태 그대로) */
+function setLang(lang) {
+  LANG = lang === 'en' ? 'en' : 'ko';
+  document.documentElement.lang = LANG;
+  document.querySelectorAll('[data-ko]').forEach((n) => { n.textContent = tr(n.dataset.ko); });
+  render(current);
+}
+// HTML에 직접 적힌 글자(헤더 결제 금액, 스켈레톤 탭)는 원문을 data-ko로 기억해 두고 바꿈
+document.querySelectorAll('.head .amt span, .sk-tabs span').forEach((n) => { n.dataset.ko = n.textContent; });
+
 /* ---------- 선명 레이어: 결제창 그리기 ---------- */
 const screen = document.querySelector('.pw');
 let current = STATE_BEFORE;
 function render(state) {
   current = state;
   const tabs = el('div', 'tabs');
-  tabs.append(el('span', '', { left: '47px' }, '신용카드'), el('span', 'on', { left: '164px' }, '간편결제'), el('span', '', { left: '281px' }, '계좌이체'), el('b'));
+  tabs.append(el('span', '', { left: '47px' }, tr('신용카드')), el('span', 'on', { left: '164px' }, tr('간편결제')), el('span', '', { left: '281px' }, tr('계좌이체')), el('b'));
   const nav = el('div', 'nav');
-  nav.append(...state.nav.map((t, i) => el('span', i === 0 ? 'on' : '', {}, t)));
+  nav.append(...state.nav.map((t, i) => el('span', i === 0 ? 'on' : '', {}, tr(t))));
   screen.replaceChildren(
     el('div', 'gs'),
     ...CARDS.map((c) => box(c, 'card')),
     tabs,
     nav,
     el('div', 'list'),
-    ...state.heads.map((t, i) => el('h4', '', { left: px(56.5), top: px(HEADS[i] - top) }, t)),
+    ...state.heads.map((t, i) => el('h4', '', { left: px(56.5), top: px(HEADS[i] - top) }, tr(t))),
     ...TILES.map((t) => box(tileBox(t), 'tile')), // 진한 테두리는 누르고 있을 때만 (demo.css .tile:active)
     ...state.cards.map((n, i) => logo(n, CARDS[i])),
     ...state.tiles.map((n, i) => logo(n, tileBox(TILES[i]))),
@@ -92,8 +113,8 @@ skel.append(
 function setSkeletonFrom(state) {
   skel.querySelectorAll('.sk-prev').forEach((n) => n.remove());
   skel.append(
-    ...state.nav.map((t, i) => el('span', 'sk-txt sk-prev', { left: 0, top: px(147.7 + 25.6 * i + 6.4 - top), width: px(49.7), textAlign: 'center' }, t)),
-    ...state.heads.map((t, i) => el('span', 'sk-txt h sk-prev', { left: px(56.5), top: px(HEADS[i] - top) }, t)),
+    ...state.nav.map((t, i) => el('span', 'sk-txt sk-prev', { left: 0, top: px(147.7 + 25.6 * i + 6.4 - top), width: px(49.7), textAlign: 'center' }, tr(t))),
+    ...state.heads.map((t, i) => el('span', 'sk-txt h sk-prev', { left: px(56.5), top: px(HEADS[i] - top) }, tr(t))),
     ...state.cards.map((n, i) => logo(n, CARDS[i], 'sk-logo sk-prev')),
     ...state.tiles.map((n, i) => logo(n, tileBox(TILES[i]), 'sk-logo sk-prev')),
   );
@@ -151,3 +172,16 @@ document.getElementById('reset').addEventListener('click', () => {
   clearPartThemes();
   phone.classList.remove('is-ai');
 });
+
+/* ---------- 부스 화면(booth-motion) 8번 안에 끼워 넣을 때 (?embed) ----------
+   결제창만 창 폭에 맞춰 꽉 차게. 부스가 보내는 메시지: {type:'ai-demo:reset'} 처음 화면으로 · {type:'ai-demo:lang', lang:'ko'|'en'} 언어 전환 */
+if (new URLSearchParams(location.search).has('embed')) {
+  document.documentElement.classList.add('embed');
+  const fitEmbed = () => document.documentElement.style.setProperty('--embed-k', innerWidth / 380);
+  fitEmbed();
+  addEventListener('resize', fitEmbed);
+  addEventListener('message', (e) => {
+    if (e.data?.type === 'ai-demo:reset') document.getElementById('reset').click();
+    if (e.data?.type === 'ai-demo:lang') setLang(e.data.lang);
+  });
+}

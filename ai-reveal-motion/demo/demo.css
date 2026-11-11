@@ -89,3 +89,10 @@ body { margin: 0; min-height: 100vh; display: grid; place-items: center; gap: 16
 .phone, .phone *:not(.aic, .aic *, .ai-btn, .ai-btn *) { transition: background-color .45s ease, color .45s ease, fill .45s ease, border-color .45s ease, box-shadow .45s ease; }
 /* Reveal 레이어에만 테마를 붙였을 때 배경(--rv-bg)도 그 테마의 Background를 따르게 */
 .rv-sharp[data-m3-theme], .rv-blur[data-m3-theme] { --rv-bg: var(--md-sys-color-background, #ffffff); }
+
+/* ---------- 부스 화면(booth-motion) 8번 안에 끼워 넣을 때 (?embed): 결제창만 창 폭에 꽉 차게 ---------- */
+/* 영어: 나라 이름이 길어 두 줄이 될 수 있어 행 안에서 가운데 정렬 */
+html[lang=en] .pw .nav span { display: flex; align-items: center; justify-content: center; padding: 0 6px; line-height: 1.15; }
+html.embed body { display: block; min-height: 0; background: transparent; overflow: hidden; }
+html.embed .hint { display: none; }
+html.embed .phone { zoom: var(--embed-k, 1); border-radius: 0; box-shadow: none; }
