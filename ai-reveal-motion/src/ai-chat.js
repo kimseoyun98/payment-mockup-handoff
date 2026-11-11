@@ -51,9 +51,9 @@ export class AIChatPanel {
     this.text = panel.querySelector('.aic-text');
     this.ph = panel.querySelector('.aic-ph');
     this.sendBtn = panel.querySelector('.aic-send');
-    // 대화가 길어져 대화 영역이 넘치면 항상 맨 아래(가장 최근 줄)가 보이게
+    // 대화 영역은 높이 고정: 새 줄이 생기면 부드럽게 맨 아래(가장 최근 줄)로 → 앞 대화(질문 말풍선 등)는 위쪽 딤 아래로 올라감
     const body = panel.querySelector('.aic-body');
-    new MutationObserver(() => { body.scrollTop = body.scrollHeight; }).observe(this.msgs, { childList: true, subtree: true, characterData: true });
+    new MutationObserver(() => { body.scrollTo({ top: body.scrollHeight, behavior: 'smooth' }); }).observe(this.msgs, { childList: true, subtree: true, characterData: true });
     this.phase = 'idle'; // 'busy' 글 나오는 중 | 'wait' 다음으로 넘길 터치 대기 | 'idle'
     this.skipping = false;
     this.cancelled = false;

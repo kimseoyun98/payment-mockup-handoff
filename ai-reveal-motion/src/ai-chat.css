@@ -15,7 +15,6 @@
   color: #292a2e;
   transform-origin: 100% 100%; /* 오른쪽 아래(AI 버튼 쪽)에서 커지고 작아짐 */
   overflow: hidden;
-  max-height: var(--aic-max-h, none); /* 대사가 길어 높이가 넘치면 이 높이까지만 → 대화 영역이 안에서 스크롤 */
 }
 .aic[hidden] { display: none; }
 /* 채팅창 뒤 투명 막 (ai-chat.js가 .aic 바로 앞에 만듦). 채팅창과 같은 부모를 꽉 채움, z-index는 채팅창보다 1 낮게 */
@@ -30,9 +29,11 @@
 .aic-head svg { width: 20px; height: 20px; }
 
 /* 대화 영역 */
-.aic-body { flex: 1 1 auto; min-height: 0; max-height: none; padding: 10px 18px 22px; overflow-y: auto; scrollbar-width: none; overscroll-behavior: contain; }
+/* 대화 영역: 높이 고정(모달 크기가 대사 길이에 따라 늘지 않음). 대화가 넘치면 위로 밀려 올라가며 위쪽 딤(페이드) 아래로 사라짐 */
+.aic-body { flex: none; height: 200px; padding: 10px 18px 22px; box-sizing: border-box; overflow-y: auto; scrollbar-width: none; overscroll-behavior: contain;
+  -webkit-mask-image: linear-gradient(transparent 0, #000 48px); mask-image: linear-gradient(transparent 0, #000 48px); }
 .aic-body::-webkit-scrollbar { display: none; }
-.aic-msgs { display: flex; flex-direction: column; justify-content: flex-end; min-height: 168px; gap: 24px; } /* 말풍선 ↔ 분석 단계. 대화 영역 최소 200(= 168 + 위아래 여백), 대화는 아래쪽부터 쌓이고 넘치면 대화 영역이 스크롤 */
+.aic-msgs { display: flex; flex-direction: column; justify-content: flex-end; min-height: 100%; gap: 24px; } /* 말풍선 ↔ 분석 단계. 대화는 아래쪽부터 쌓이고, 넘치면 대화 영역이 스크롤 */
 .aic-me { align-self: flex-end; max-width: 86%; padding: 12px 14px; border-radius: 12px 12px 2px 12px; background: #f1f2f4; }
 .aic-steps { padding: 0 2px; display: flex; flex-direction: column; gap: 16px; } /* 결과 글 ↔ 생각 중 */
 .aic-results { display: flex; flex-direction: column; gap: 12px; } /* 결과 줄 사이 */
