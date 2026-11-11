@@ -48,3 +48,7 @@ export default function CheckoutModal() {
 
 - 부모 → 이 페이지: `{type:'video-mockup:play', lang:'ko'|'en'}` 처음부터 1회 재생 · `{type:'video-mockup:stop'}` 멈추고 첫 화면으로
 - 이 페이지 → 부모: `{type:'video-mockup:end'}` 결제 성공까지 끝남 (마지막 흰 화면 전환은 부스 쪽에서)
+
+## 결제 성공 원 바둑알 질감 (단독 페이지만)
+
+`video-mockup/`을 단독으로 열면 결제 성공 체크 원이 바둑알처럼 볼록한 질감으로 그려집니다 (왼쪽 위 밝고 가장자리 어두운 면 + 반사광 + 바닥 그림자 + 체크 그림자, `create2BMotionSVG(uid, true)` · `stone2B`). 부스 화면이 불러오는 `?embed`에는 적용하지 않아 기존 평면 원 그대로입니다.

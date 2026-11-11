@@ -98,9 +98,23 @@ const T=100;L.sk=el('div','sk',{top:Y(T)+'px'});
 
 L.s5=shot(5,{opacity:0});L.s6=shot(6);
 // 2-B: 3D 실린더 + 쫀득 캡슐 스트레치 → 캡슐 중앙 합체 + 하단 서클 라이징 + 체크 드로잉
-function create2BMotionSVG(uid){
+function create2BMotionSVG(uid,stone=false){
   return `<svg viewBox="26 26 148 148" aria-hidden="true">
-    <defs>
+    <defs>${stone?`
+      <radialGradient id="st-${uid}" cx="38%" cy="30%" r="78%">
+        <stop offset="0" stop-color="#8aa6f6"/>
+        <stop offset=".42" stop-color="#3C62DD"/>
+        <stop offset=".82" stop-color="#2f50c4"/>
+        <stop offset="1" stop-color="#22399a"/>
+      </radialGradient>
+      <radialGradient id="sp-${uid}">
+        <stop offset="0" stop-color="#fff" stop-opacity=".9"/>
+        <stop offset="1" stop-color="#fff" stop-opacity="0"/>
+      </radialGradient>
+      <radialGradient id="sd-${uid}">
+        <stop offset=".72" stop-color="#14205a" stop-opacity=".32"/>
+        <stop offset="1" stop-color="#14205a" stop-opacity="0"/>
+      </radialGradient>`:''}
       <linearGradient id="sh-${uid}" x1="0%" y1="0%" x2="100%" y2="20%">
         <stop offset="0%" stop-color="#fff" stop-opacity="0"/>
         <stop offset="50%" stop-color="#fff" stop-opacity=".55"/>
@@ -124,7 +138,10 @@ function create2BMotionSVG(uid){
       </g>
       <ellipse class="sheen" cx="100" cy="100" rx="72" ry="72" fill="url(#sh-${uid})" opacity="0"/>
     </g>
-    <circle class="rise" cx="100" cy="132" r="30" fill="#3C62DD" opacity="0"/>
+    ${stone?`<ellipse class="rise-sd" cx="100" cy="132" rx="30" ry="30" fill="url(#sd-${uid})" opacity="0"/>`:''}
+    <circle class="rise" cx="100" cy="132" r="30" fill="${stone?`url(#st-${uid})`:'#3C62DD'}" opacity="0"/>
+    ${stone?`<ellipse class="rise-sp" cx="100" cy="132" rx="10" ry="6" fill="url(#sp-${uid})" opacity="0"/>
+    <path class="chk-sd" d="M 75.5 101.5 L 92.5 118.5 L 125.5 84.5" transform="translate(0 3)" fill="none" stroke="#14205a" stroke-opacity=".35" stroke-width="9" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="72" stroke-dashoffset="72" opacity="0"/>`:''}
     <path class="chk" d="M 75.5 101.5 L 92.5 118.5 L 125.5 84.5" fill="none" stroke="#fff" stroke-width="9" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="72" stroke-dashoffset="72" opacity="0"/>
   </svg>`;
 }
@@ -185,11 +202,22 @@ function render2B(root,t,finStart){
     if(fe<.25){chk.setAttribute('opacity',0);chk.setAttribute('stroke-dashoffset',72);}
     else{chk.setAttribute('opacity',1);const p4=Math.min(1,(fe-.25)/.24);chk.setAttribute('stroke-dashoffset',72*(1-(1-Math.pow(1-p4,2.2))));}
   }
+  stone2B(root,isFin);
+}
+/* 결제 성공 원 바둑알 질감 (create2BMotionSVG(uid,true)일 때만): 원을 따라 반사광(왼쪽 위) · 바닥 그림자 · 체크 그림자 */
+function stone2B(root,isFin){
+  const sp=root.querySelector('.rise-sp');if(!sp)return;
+  const rise=root.querySelector('.rise'),sd=root.querySelector('.rise-sd'),csd=root.querySelector('.chk-sd'),chk=root.querySelector('.chk');
+  if(!isFin){[sp,sd,csd].forEach(e=>e.setAttribute('opacity',0));return;}
+  const cy=+rise.getAttribute('cy'),r=+rise.getAttribute('r'),o=+rise.getAttribute('opacity');
+  sp.setAttribute('cx',100-r*.3);sp.setAttribute('cy',cy-r*.38);sp.setAttribute('rx',r*.44);sp.setAttribute('ry',r*.26);sp.setAttribute('opacity',o*.6);
+  sd.setAttribute('cy',cy+r*.1);sd.setAttribute('rx',r*1.04);sd.setAttribute('ry',r*1.02);sd.setAttribute('opacity',o);
+  csd.setAttribute('opacity',chk.getAttribute('opacity'));csd.setAttribute('stroke-dashoffset',chk.getAttribute('stroke-dashoffset'));
 }
 L.load=el('div','load',{width:f(55)+'px',height:f(55)+'px',opacity:0});
 L.load.innerHTML=create2BMotionSVG('ld');
 L.ok=el('div','load',{width:f(55)+'px',height:f(55)+'px',left:X(PT.load6[0]-2)+'px',top:Y(PT.load6[1]-2)+'px',opacity:1});
-L.ok.innerHTML=create2BMotionSVG('ok');
+L.ok.innerHTML=create2BMotionSVG('ok',!EMBED); // 결제 성공 체크 원: 바둑알 질감은 단독 페이지에서만 (부스 ?embed는 기존 평면 원)
 L.g6=el('div',null,{position:'absolute',inset:0,opacity:0});L.g6.append(L.s6,L.ok);
 L.sb=el('div','sb');L.hand=el('div','hand');L.white=el('div','white');
 scr.append(L.s1,L.s2,L.scroll,L.side,L.s3,L.sheet,L.sk,L.s5,L.g6,L.load,L.sb,L.hand,L.white);
