@@ -4,11 +4,15 @@
  * 1) press()        : 눌림 1 → 0.93 → 1 (130ms 눌림 + 270ms 스프링 복귀)
  * 2) startLoading() : 글자 사라짐 → 버튼이 별 아이콘만 담은 동그라미로 줄어듦 → 별이 숨쉬고 흐릿한 빛이 지나감
  * 3) stopLoading()  : 동그라미가 원래 버튼으로 늘어나고 글자가 돌아옴 (Promise, 다 돌아오면 resolve)
+ * 4) hide()         : (한 번만 쓰는 버튼) 로딩 동그라미가 작아지며 사라짐 → 버튼 숨김
+ *    show()         : 숨긴 버튼을 원래 모습으로 되돌림 (초기화용)
  *
  * 줄어드는 방향은 버튼의 CSS 위치 기준을 따름 (right로 붙이면 오른쪽으로, left로 붙이면 왼쪽으로 모임)
- * 필요한 마크업과 클래스는 ai-button.css / README.md 참고
+ * 만들기: createAIButton(container, { label }) → 마크업을 container 안에 만들고 AIButton을 돌려줌
+ * 위치는 서비스 CSS에서 .ai-btn 에 지정 (예: position:absolute; right:16px; bottom:16px)
  */
-import { SPRING, DECEL, EASE_OUT, EASE_IN_OUT } from './motion-tokens.js';
+import { SPRING, DECEL, ACCEL, EASE_OUT, EASE_IN_OUT } from './motion-tokens.js';
+import { aiStarSvg } from './ai-star.js';
 
 export class AIButton {
   /** @param {HTMLElement} btn  .ai-btn 요소 */
@@ -85,8 +89,41 @@ export class AIButton {
     this.shape = null;
   }
 
+  /** 사라짐: 0.6배로 작아지며 투명해짐 280ms (ACCEL) → 숨김 */
+  async hide() {
+    this.stopLoops();
+    const a = this.btn.animate([{ opacity: 1, transform: 'scale(1)' }, { opacity: 0, transform: 'scale(.6)' }], { duration: 280, easing: ACCEL, fill: 'forwards' });
+    await a.finished.catch(() => {});
+    this.btn.hidden = true;
+  }
+
+  /** 숨긴 버튼을 원래 모습으로 (모든 애니메이션 해제) */
+  show() {
+    this.stopLoops();
+    this.btn.getAnimations({ subtree: true }).forEach((x) => x.cancel());
+    this.shape = null;
+    this.btn.hidden = false;
+  }
+
   stopLoops() {
     this.loops.forEach((a) => a.cancel());
     this.loops = [];
   }
+}
+
+/**
+ * AI 추천 버튼 만들기: container 안에 버튼 마크업을 만들고 AIButton을 돌려줌
+ * @param {HTMLElement} container
+ * @param {{ label?: string }} options
+ */
+export function createAIButton(container, { label = 'AI 추천' } = {}) {
+  const btn = document.createElement('button');
+  btn.type = 'button';
+  btn.className = 'ai-btn';
+  btn.innerHTML = `<span class="ai-icon-wrap">${aiStarSvg('ai-icon', 'ai')}</span>`
+    + '<span class="ai-sheen" aria-hidden="true"></span>'
+    + '<span class="ai-labels"><span class="ai-label"></span></span>';
+  btn.querySelector('.ai-label').textContent = label;
+  container.append(btn);
+  return new AIButton(btn);
 }

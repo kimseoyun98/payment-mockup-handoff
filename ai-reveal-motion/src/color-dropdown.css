@@ -1,37 +1,39 @@
 /* =========================================================
    결제창 컬러 변경 드롭다운 (Figma colorPicker-dropdown, 2배 크기)
-   마크업:
+   마크업은 createColorDropdown()이 만듦 (color-dropdown.js). 구조 참고용:
    <div class="cp">
      <button class="cp-trigger"> 팔레트 아이콘 svg </button>
      <div class="cp-panel" hidden>
        <button class="cp-default"> 팔레트 아이콘 svg </button>
-       <button class="cp-chip" data-color="Baseline" style="--c0:#efe4ff;--c1:#d0bcff;--c2:#7049d9"></button>
+       <button class="cp-chip" data-color="Baseline" style="--c:#7049d9"></button>
        ...
      </div>
    </div>
-   칩 순서·색 (Figma 기준, 그라데이션 0% / 45% / 100%, 왼→오):
-     Baseline #efe4ff #d0bcff #7049d9 / Green #e0f0e2 #a5d7ad #2fb081 / Monochrome #fafafa #ffffff #000000
-     Pink #ffdceb #feb0d1 #df267b / Mint #e4f5f0 #9ae4d4 #0093a0 / Orange #ffeee2 #ffb68c #ff893a / Blue #ebf0f7 #a9ceff #2b5893
+   칩 순서·색: m3-theme.js의 M3_CHIP_THEMES 순서, 색 = 각 테마의 Primary (Figma chip 칠 = M3 · Theme 'Schemes/Primary')
    ========================================================= */
 .cp { position: relative; width: 32px; height: 32px; }
 .cp-trigger {
   width: 32px; height: 32px; padding: 0; border: 0; border-radius: 50%;
   display: grid; place-items: center;
-  background: #fff; /* 닫힌 상태: 배경 없음 (흰 헤더와 같은 색) */
+  background: transparent; /* 닫힌 상태: 배경 없음 */
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
 }
 .cp-trigger svg, .cp-default svg { width: 20px; height: 20px; }
-/* 알약: Figma 폭 18, 안쪽 여백 1, 칩 간격 2, #F5F5F5 → 2배. 버튼 자리 위에 겹쳐 펼쳐짐 */
+.cp-trigger svg { fill: var(--md-sys-color-on-primary-container, #6b6e76); } /* Figma: 헤더 아이콘 = On Primary Container */
+/* 알약: Figma 폭 16, 안쪽 여백 1, 칩 간격 4, 흰 배경 → 2배. 버튼 자리 위에 겹쳐 펼쳐짐 */
 .cp-panel {
-  position: absolute; left: -2px; top: -2px; width: 36px; padding: 2px; box-sizing: border-box;
-  display: flex; flex-direction: column; gap: 4px;
-  border-radius: 999px; background: #f5f5f5; overflow: hidden;
+  position: absolute; left: 0; top: 0; width: 32px; padding: 2px; box-sizing: border-box;
+  display: flex; flex-direction: column; gap: 8px;
+  border-radius: 999px; background: #ffffff; overflow: hidden;
 }
 .cp-panel[hidden] { display: none; }
 .cp-default, .cp-chip {
-  flex: none; width: 32px; height: 32px; padding: 0; border: 0; border-radius: 50%; cursor: pointer;
+  flex: none; width: 28px; height: 28px; padding: 0; border: 0; border-radius: 50%; cursor: pointer;
   -webkit-tap-highlight-color: transparent;
 }
-.cp-default { display: grid; place-items: center; background: #fff; } /* 선택 상태: 흰 배경 */
-.cp-chip { background: linear-gradient(90deg, var(--c0) 0%, var(--c1) 45%, var(--c2) 100%); }
+/* 맨 위 칩 = 팔레트 버튼의 눌림 상태: 배경 Primary Container / 아이콘 On Primary Container
+   (결제창 테마 토큰을 따라감. 테마 미선택이면 기존 색: #F5F5F5 원 + #6B6E76 아이콘) */
+.cp-default { display: grid; place-items: center; background: var(--md-sys-color-primary-container, #f5f5f5); }
+.cp-default svg { fill: var(--md-sys-color-on-primary-container, #6b6e76); }
+.cp-chip { background: var(--c); }

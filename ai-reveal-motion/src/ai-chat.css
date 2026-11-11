@@ -1,0 +1,71 @@
+/* =========================================================
+   AI 채팅창 (Rovo 채팅 패널 형태, 로고·이름 자리는 비움)
+   마크업은 createAIChat()이 만듦 (ai-chat.js)
+   쓰는 쪽에서 지정할 것: .aic 위치(left/right/top/bottom), 겹침 순서 --aic-z (기본 30, 뒤 투명 막은 --aic-z - 1)
+   ========================================================= */
+.aic {
+  position: absolute; z-index: var(--aic-z, 30);
+  width: 300px;
+  display: flex; flex-direction: column;
+  background: #fff;
+  border: 1px solid #e3e4e8;
+  border-radius: 12px;
+  box-shadow: 0 8px 28px rgba(9, 30, 66, .18), 0 0 1px rgba(9, 30, 66, .3);
+  font: 400 14px/1.5 Pretendard, system-ui, sans-serif; word-break: keep-all; /* 폰트: Pretendard (데모는 jsDelivr CDN으로 불러옴) */
+  color: #292a2e;
+  transform-origin: 100% 100%; /* 오른쪽 아래(AI 버튼 쪽)에서 커지고 작아짐 */
+  overflow: hidden;
+}
+.aic[hidden] { display: none; }
+/* 채팅창 뒤 투명 막 (ai-chat.js가 .aic 바로 앞에 만듦). 채팅창과 같은 부모를 꽉 채움, z-index는 채팅창보다 1 낮게 */
+.aic-scrim { position: absolute; inset: 0; z-index: calc(var(--aic-z, 30) - 1); background: transparent; }
+.aic-scrim[hidden] { display: none; }
+.aic button { all: unset; display: grid; place-items: center; cursor: default; }
+
+/* 헤더: 메뉴 | (로고·이름 자리 비움) | 새 대화·사이드패널·더보기·닫기 */
+.aic-head { display: flex; align-items: center; gap: 4px; height: 52px; padding: 0 10px; }
+.aic-head .aic-title { flex: 1; } /* 로고·이름 자리 (비움) */
+.aic-head button { width: 32px; height: 32px; border-radius: 50%; color: #6b6e76; } /* 결제창 헤더 아이콘과 같은 규격: 32px 터치 영역 + 20px 아이콘, 순검정 대신 회색 */
+.aic-head svg { width: 20px; height: 20px; }
+
+/* 대화 영역 */
+.aic-body { flex: 1; min-height: 200px; padding: 10px 18px 22px; display: flex; flex-direction: column; justify-content: flex-end; }
+.aic-msgs { display: flex; flex-direction: column; gap: 24px; } /* 말풍선 ↔ 분석 단계 */
+.aic-me { align-self: flex-end; max-width: 86%; padding: 12px 14px; border-radius: 12px 12px 2px 12px; background: #f1f2f4; }
+.aic-steps { padding: 0 2px; display: flex; flex-direction: column; gap: 16px; } /* 결과 글 ↔ 생각 중 */
+.aic-results { display: flex; flex-direction: column; gap: 12px; } /* 결과 줄 사이 */
+.aic-results:empty { display: none; }
+.aic-result { position: relative; margin: 0; padding-left: 24px; font-size: 15.5px; font-weight: 500; color: #292a2e; /* 글자는 일반 본문색, 앞 동그라미는 연한 회색 */ /* 생각 중 문구와 글자 시작선 맞춤 (아이콘 16 + 간격 8) */ }
+.aic-result::before { /* 결과 줄 앞 동그라미 (생각 중 별 아이콘과 같은 16px 칸 가운데) */
+  content: ''; position: absolute; left: 4px; top: calc(0.75em - 4px); width: 8px; height: 8px; border-radius: 50%;
+  background: #c4c6cc; animation: aic-dot .2s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+@keyframes aic-dot { from { transform: scale(0); } }
+.aic-thinking { display: flex; align-items: center; gap: 8px; font-size: 15.5px; } /* 결과 글과 같은 크기 */
+.aic-ico { width: 16px; height: 16px; flex: none; color: #8c8f97; }
+.aic-ico svg { display: block; width: 16px; height: 16px; }
+/* 생각 중: 별 아이콘 + 문구의 진한 글자 묶음이 한 글자씩 옮겨 감 (ai-chat.js에서 처리) */
+.aic-think { display: block; width: 16px; height: 16px; }
+.aic-think path { transform-box: fill-box; transform-origin: center; } /* 별 각각 제자리에서 */
+.aic-label.is-thinking span { color: #a5a7ad; }
+.aic-label.is-thinking span.on { color: #292a2e; }
+
+/* 입력란 */
+.aic-input { margin: 0 14px 14px; border: 1px solid #dddee1; border-radius: 12px; padding: 12px 12px 8px; }
+.aic-field { position: relative; min-height: 3em; } /* 두 줄 높이로 고정 → 타이핑하다 줄이 바뀌어도 높이가 안 변해 떨리지 않음 */
+.aic-ph { color: #8c8f97; }
+.aic-ph[hidden] { display: none; }
+.aic-text:not(:empty) + .aic-ph { display: none; }
+.aic-caret { display: inline-block; width: 1px; height: 16px; margin-left: 1px; vertical-align: -2px; background: #292a2e; animation: aic-caret 1s steps(1) infinite; }
+.aic-ph:not([hidden]) ~ .aic-caret { display: none; }
+@keyframes aic-caret { 50% { opacity: 0; } }
+.aic-tools { display: flex; align-items: center; justify-content: space-between; margin-top: 8px; }
+.aic-tools button { width: 32px; height: 32px; border-radius: 8px; color: #6b6e76; }
+.aic-tools svg { width: 20px; height: 20px; }
+.aic-right { display: flex; gap: 8px; }
+.aic-send { background: #f1f2f4; color: #a5a7ad !important; transition: background-color .2s, color .2s; }
+.aic-send.is-active { background: #e6e7ea; color: #6b6e76 !important; } /* 활성: 은은한 회색 배경 + 다른 아이콘과 같은 회색 화살표 */
+
+@media (prefers-reduced-motion: reduce) {
+  .aic-caret { animation: none; }
+}

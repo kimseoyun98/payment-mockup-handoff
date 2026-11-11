@@ -21,10 +21,24 @@ body { margin: 0; min-height: 100vh; display: grid; place-items: center; gap: 16
 /* ---------- 헤더 (Figma y 0~61) ---------- */
 .head { position: absolute; inset: 0 0 auto; height: 122px; background: var(--md-sys-color-surface, #ffffff); }
 .head .logo { position: absolute; left: 19.4px; top: 27.8px; width: 117.2px; height: 16.6px; background: url(./assets/screen.png) -19.4px -27.8px / 380px 592px; mix-blend-mode: multiply; } /* 로고는 테마와 무관 → 이미지 그대로 */
+.head .logo, .head .logo-ai { transition: opacity .45s ease; }
+/* AI 추천 결과 로고 (Figma component 섹션 'logo/MEIMEI 美美' 0.6배). 테마와 무관한 고정색 = Rose 팔레트 값 */
+.head .logo-ai {
+  position: absolute; left: 19.4px; top: 24px; display: flex; align-items: center; gap: 6px; opacity: 0;
+  font: 800 21.6px/1 Syne, sans-serif; letter-spacing: -0.02em; color: #cc3b54; white-space: nowrap;
+}
+.head .logo-ai span { padding: 2px 5px; border-radius: 999px; background: #fbe5ea; font: 700 8.4px/1.3 'Noto Serif SC', serif; letter-spacing: 0; }
+/* AI 추천이 적용되면 (헤더 색이 바뀌는 순간과 같이) PAYVERSE → MEIMEI 로 교체 */
+.phone.is-ai .head .logo { opacity: 0; }
+.phone.is-ai .head .logo-ai { opacity: 1; }
 .head .amt { position: absolute; left: 19.4px; right: 19.6px; top: 76px; display: flex; justify-content: space-between; font: 600 17.5px/26px Pretendard, system-ui, sans-serif; }
 .head .amt span:first-child { color: var(--md-sys-color-on-surface, #000000); }
 .head .amt span:last-child { color: var(--md-sys-color-primary, #3c62dd); }
-.phone .globe { position: absolute; left: 276.4px; top: 20px; width: 32px; height: 32px; display: grid; place-items: center; }
+/* 헤더 아이콘(지구본·팔레트): 기본 = 배경 없이 아이콘만, 아이콘 On Primary Container
+   눌림·선택 상태 = 배경 Primary Container (Figma 지구본에 표시된 상태) */
+.phone .globe { all: unset; position: absolute; left: 276.4px; top: 20px; width: 32px; height: 32px; display: grid; place-items: center; border-radius: 50%; background: transparent; -webkit-tap-highlight-color: transparent; }
+.phone .globe:active, .phone .globe.is-pressed { background: var(--md-sys-color-primary-container, #f5f5f5); }
+.phone .globe svg, .phone .cp-trigger svg { fill: var(--md-sys-color-on-primary-container, #6b6e76); }
 .phone .globe svg { width: 20px; height: 20px; }
 .phone .cp { position: absolute; left: 328.4px; top: 20px; z-index: 20; }
 .phone .cp-trigger { background: transparent; }
@@ -40,11 +54,13 @@ body { margin: 0; min-height: 100vh; display: grid; place-items: center; gap: 16
   background: var(--md-sys-color-surface-container-lowest, #ffffff);
   box-shadow: inset 0 0 0 1.5px var(--md-sys-color-outline-variant, #f5f5f5);
 }
-/* 결제방식 탭: 배경 Background / 글자 On Surface Variant / 선택 글자 On Primary Container / 선택 밑줄 Primary / 아래 선 Outline Variant */
+/* 선택(눌린) 타일: 테두리 Outline Variant Pressed. 테마 미선택이면 기존 테두리 그대로 */
+.pw .tile:active, .pw .tile.is-pressed { /* Pressed 상태에서만 진한 테두리 (기본 상태엔 없음) */ box-shadow: inset 0 0 0 1.5px var(--md-sys-color-outline-variant-pressed, #f5f5f5); }
+/* 결제방식 탭: 배경 Background / 글자 On Surface Variant / 선택 글자 On Primary Container / 선택 밑줄 Outline Variant Pressed / 아래 선 Outline Variant */
 .pw .tabs { left: 0; top: 122.2px; width: 380px; height: 51.2px; background: var(--md-sys-color-background, #fafafa); /* Figma: 탭 줄은 칠이 없어 바깥 프레임의 Background가 비침 */ box-shadow: inset 0 -2px 0 var(--md-sys-color-outline-variant, #eeeeee); }
 .pw .tabs span { position: absolute; top: 19.4px; font: 600 14.6px/1.467 Pretendard, system-ui, sans-serif; letter-spacing: .0096em; color: var(--md-sys-color-on-surface-variant, #bdbdbd); white-space: nowrap; }
 .pw .tabs span.on { color: var(--md-sys-color-on-primary-container, #212121); }
-.pw .tabs b { position: absolute; left: 136.4px; bottom: 0; width: 107.2px; height: 2px; background: var(--md-sys-color-primary, #212121); }
+.pw .tabs b { position: absolute; left: 136.4px; bottom: 0; width: 107.2px; height: 2px; background: var(--md-sys-color-outline-variant-pressed, #212121); }
 /* 나라 탭: 행 Surface Container Low + On Surface Variant / 선택 행 Primary Container + On Primary Container */
 .pw .nav { left: 0; top: 173.4px; width: 99.4px; height: 296.6px; } /* Figma: 사이드바 자체는 칠 없음, 행마다 색 */
 .pw .nav span { display: block; height: 51.2px; text-align: center; font: 500 13.6px/51.2px Pretendard, system-ui, sans-serif; color: var(--md-sys-color-on-surface-variant, #9e9e9e); background: var(--md-sys-color-surface-container-low, #fafafa); }
@@ -64,3 +80,12 @@ body { margin: 0; min-height: 100vh; display: grid; place-items: center; gap: 16
 
 /* ---------- AI 추천 버튼 위치: 오른쪽 끝 고정 → 동그라미로 줄어들 때 오른쪽으로 모임 ---------- */
 .phone .ai-btn { position: absolute; right: 16px; top: 528px; z-index: 10; }
+
+/* ---------- AI 채팅창 위치: AI 추천 버튼 바로 위, 오른쪽 끝 맞춤 ---------- */
+.phone .aic { right: 16px; bottom: 76px; } /* 겹침 순서는 기본값 --aic-z: 30 (팔레트 20·AI 버튼 10 위) */
+
+/* 테마가 바뀔 때(AI 추천 적용·색상 드롭다운) 색이 툭 바뀌지 않고 0.45s 동안 넘어감 (Reveal 시작 크로스페이드와 같은 시간) */
+/* AI 버튼·채팅창은 제외 (자체 모션 유지) */
+.phone, .phone *:not(.aic, .aic *, .ai-btn, .ai-btn *) { transition: background-color .45s ease, color .45s ease, fill .45s ease, border-color .45s ease, box-shadow .45s ease; }
+/* Reveal 레이어에만 테마를 붙였을 때 배경(--rv-bg)도 그 테마의 Background를 따르게 */
+.rv-sharp[data-m3-theme], .rv-blur[data-m3-theme] { --rv-bg: var(--md-sys-color-background, #ffffff); }

@@ -22,6 +22,7 @@
 .rv-sharp { position: relative; z-index: 1; height: 100%; background: var(--rv-bg); }
 .rv-blur { z-index: 2; background: var(--rv-bg); filter: blur(var(--rv-content-blur, 8px)); }
 .rv-keep { position: absolute; z-index: 3; pointer-events: none; }
+.rv-prev { position: absolute; inset: 0; z-index: 3; pointer-events: none; background: var(--rv-bg); } /* capture()로 잡아 둔 이전 화면 (시작할 때 서서히 사라짐) */
 .rv-canvas { z-index: 4; width: 100%; height: 100%; }
 .rv-root [hidden] { display: none !important; }
 

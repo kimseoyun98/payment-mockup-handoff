@@ -1,6 +1,6 @@
 /* =========================================================
    AI 추천 버튼
-   마크업:
+   마크업은 createAIButton()이 만듦 (ai-button.js). 구조 참고용:
    <button class="ai-btn">
      <span class="ai-icon-wrap">
        <svg class="ai-icon"> <path class="ai-star-s"/> <path class="ai-star-l"/> </svg>
@@ -44,3 +44,4 @@
   background: linear-gradient(90deg, rgba(255,255,255,0), rgba(255,255,255,.35), rgba(255,255,255,0));
   transform: translateX(-110%);
 }
+.ai-btn[hidden] { display: none; }

@@ -1,0 +1,6 @@
+/* AI 추천 결제창 모션 모듈 CSS 한 번에 불러오기 */
+@import url('./m3-theme.css');
+@import url('./ai-button.css');
+@import url('./ai-chat.css');
+@import url('./generation-reveal.css');
+@import url('./color-dropdown.css');

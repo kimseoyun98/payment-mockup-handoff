@@ -3,10 +3,7 @@
  * 서비스에 넣을 때 참고할 부분은 맨 아래 '모듈 연결' 블록. 나머지는 목업을 그리기 위한 코드
  * 좌표는 Figma 190×296 프레임 기준 값을 2배(k)로 키워 씀. Reveal 영역은 Figma y 61부터
  */
-import { AIButton } from '../src/ai-button.js';
-import { GenerationReveal } from '../src/generation-reveal.js';
-import { ColorDropdown } from '../src/color-dropdown.js';
-import { bindAIRecommend } from '../src/ai-recommend.js';
+import { createAIButton, createAIChat, GenerationReveal, createColorDropdown, setM3Theme, bindAIRecommend } from '../src/index.js';
 
 const k = 2, top = 61;
 const px = (v) => `${v * k}px`;
@@ -17,25 +14,6 @@ const el = (tag, cls, style = {}, text) => {
   if (text != null) n.textContent = text;
   return n;
 };
-
-/* ---------- 컬러칩 (Figma colorPicker-dropdown 순서, 그라데이션 0% / 45% / 100%) ---------- */
-const CHIPS = [
-  ['Baseline', '#efe4ff', '#d0bcff', '#7049d9'],
-  ['Green', '#e0f0e2', '#a5d7ad', '#2fb081'],
-  ['Monochrome', '#fafafa', '#ffffff', '#000000'],
-  ['Pink', '#ffdceb', '#feb0d1', '#df267b'],
-  ['Mint', '#e4f5f0', '#9ae4d4', '#0093a0'],
-  ['Orange', '#ffeee2', '#ffb68c', '#ff893a'],
-  ['Blue', '#ebf0f7', '#a9ceff', '#2b5893'],
-];
-document.getElementById('cp-panel').append(...CHIPS.map(([name, c0, c1, c2]) => {
-  const b = el('button', 'cp-chip');
-  b.type = 'button';
-  b.dataset.color = name; // = src/m3-theme.css 의 테마 이름
-  b.setAttribute('aria-label', name);
-  b.style.cssText = `--c0:${c0};--c1:${c1};--c2:${c2}`;
-  return b;
-}));
 
 /* ---------- 결제창 데이터: 처음 화면 / AI 추천 결과 ---------- */
 // 로고: [파일 이름, 로고 이미지 원본 크기 w, h] — Figma 로고 칸(상단 80×50, 타일 84×53)을 그대로 뽑은 이미지
@@ -93,7 +71,7 @@ function render(state) {
     nav,
     el('div', 'list'),
     ...state.heads.map((t, i) => el('h4', '', { left: px(56.5), top: px(HEADS[i] - top) }, t)),
-    ...TILES.map((t) => box(tileBox(t), 'tile')),
+    ...TILES.map((t) => box(tileBox(t), 'tile')), // 진한 테두리는 누르고 있을 때만 (demo.css .tile:active)
     ...state.cards.map((n, i) => logo(n, CARDS[i])),
     ...state.tiles.map((n, i) => logo(n, tileBox(TILES[i]))),
   );
@@ -123,18 +101,53 @@ function setSkeletonFrom(state) {
 
 /* ---------- 모듈 연결 (서비스에서도 이 형태로 연결) ---------- */
 const phone = document.querySelector('.phone');
+const AI_THEME = 'Rose'; // AI 추천 결과에 적용할 테마 (m3-theme.css 테마 이름)
+
+// 1) 컬러 드롭다운: 칩을 고르면 결제창 전체 테마 변경
+createColorDropdown(phone, { onSelect: (theme) => setM3Theme(phone, theme) });
+
+// 2) Reveal: #region(.rv-root) 안 레이어 구조는 index.html 참고
 const reveal = new GenerationReveal(document.getElementById('region'));
-const button = new AIButton(document.getElementById('ai'));
-bindAIRecommend(button, reveal, {
-  // 스켈레톤엔 이전 상태를 연하게, 선명 레이어는 AI 추천 결과로 교체 (Rose 테마는 이번 데모에서 적용하지 않음)
-  onBeforeReveal: () => { setSkeletonFrom(current); render(STATE_AI); },
+const revealLayers = [...document.querySelectorAll('#region .rv-sharp, #region .rv-blur')];
+const headerParts = [...document.querySelectorAll('.phone .head, .phone .globe, .phone .cp')]; // Reveal 영역 밖에서 색이 바뀌는 부분
+
+// 3) AI 추천 버튼 + 채팅창 + 연결
+const recommend = bindAIRecommend(createAIButton(phone), reveal, {
+  // 채팅창: 창 안 터치 → 글이 나오는 중이면 바로 완성, 다 나온 뒤면 다음으로 / X·창 바깥 터치 → 닫기
+  chat: createAIChat(phone, { tapToAdvance: true }),
+  prompt: '우리회사 코어 타겟군과 실제 결제 수단 선택률에 맞게 결제창 세팅해줘',
+  steps: [
+    { loading: '고객 데이터 분석 중…', done: '중화권 고객 비중 70% 이상' },
+    { loading: '결제 수단 선택률 확인 중…', done: '선택률 확인 완료' },
+  ],
+  once: true, // 한 번 적용되면 AI 추천 버튼이 사라짐
+  // 내용 교체: 스켈레톤엔 이전 상태를 연하게, 선명 레이어는 AI 추천 결과로 + 새 내용에만 Rose 테마
+  //   → 글로우가 쓸고 지나간 자리부터 Rose 색으로 드러남
+  onBeforeReveal: () => {
+    setSkeletonFrom(current);
+    render(STATE_AI);
+    revealLayers.forEach((el) => setM3Theme(el, AI_THEME));
+  },
+  // 글로우가 쓸기 시작하는 순간: Reveal 영역 밖인 헤더도 Rose로 (0.45s 전환) + 로고 교체 (PAYVERSE → MEIMEI)
+  onSweepStart: () => {
+    headerParts.forEach((el) => setM3Theme(el, AI_THEME));
+    phone.classList.add('is-ai');
+  },
+  // 끝: 테마를 결제창 전체로 옮기고 부분별 표시는 정리 (같은 색이라 화면 변화 없음)
+  onAfterReveal: () => {
+    setM3Theme(phone, AI_THEME);
+    clearPartThemes();
+  },
 });
-const dropdown = new ColorDropdown(document.getElementById('cp'), document.getElementById('cp-panel'), {
-  onSelect: (theme) => { phone.dataset.m3Theme = theme; }, // 칩 이름 = m3-theme.css 테마 이름
-});
-phone.addEventListener('click', () => dropdown.close()); // 바깥 터치 시 닫힘
+function clearPartThemes() {
+  [...revealLayers, ...headerParts].forEach((el) => setM3Theme(el, null));
+}
+
+/* ---------- 데모 전용: 처음 화면으로 ---------- */
 document.getElementById('reset').addEventListener('click', () => {
-  reveal.stop();
+  recommend.reset(); // 채팅창 닫기 + Reveal 중단 + AI 추천 버튼 다시 보이기
   render(STATE_BEFORE);
-  delete phone.dataset.m3Theme;
+  setM3Theme(phone, null);
+  clearPartThemes();
+  phone.classList.remove('is-ai');
 });

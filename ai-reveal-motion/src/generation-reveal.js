@@ -15,9 +15,13 @@
  *   canvas.rv-canvas      쓸어내리는 글로우
  *   (선택) .rv-keep       AI가 바꾸지 않는 부분. 스켈레톤·블러 없이 항상 선명, 글로우만 위로 지나감
  *
+ * 영역 밖 요소 맞추기: play({ onSweepStart }) → 글로우가 쓸기 시작하는 순간 호출됨
  * 콘텐츠를 바꾸는 시점: play() 직전에 .rv-sharp 내용을 새 내용으로 바꾸면 블러·선명 구간에 새 내용이 보임
+ * 부드러운 시작: 내용을 바꾸기 전에 capture()를 부르면, play() 때 이전 화면이 enterDuration 동안 서서히 사라지며
+ *               스켈레톤으로 넘어감 (부르지 않으면 바로 스켈레톤)
  */
 export const REVEAL_DEFAULTS = {
+  enterDuration: 450, // ms, capture()로 잡아 둔 이전 화면이 서서히 사라지며 스켈레톤으로 넘어가는 시간
   waitDuration: 1000, // ms, 스켈레톤 + 배경 빛만 보이는 대기 시간
   duration: 4000, // ms, 위→아래로 쓸어내리는 시간
   fadeOut: 500, // ms, 다 내려간 뒤 글로우가 사라지는 시간
@@ -70,15 +74,42 @@ export class GenerationReveal {
     this.finish();
   }
 
-  /** 재생. 끝나면 resolve. prefers-reduced-motion이면 바로 최종 상태 */
-  play() {
+  /** 지금 보이는 화면(.rv-sharp)을 복제해 둠. 내용을 바꾸기 직전에 호출 */
+  capture() {
+    this.prev?.remove();
+    this.prev = document.createElement('div');
+    this.prev.className = 'rv-prev';
+    this.prev.setAttribute('aria-hidden', 'true');
+    this.prev.append(...[...this.sharp.childNodes].map((n) => n.cloneNode(true)));
+    this.root.insertBefore(this.prev, this.canvas);
+  }
+
+  /**
+   * 재생. 끝나면 resolve. prefers-reduced-motion이면 바로 최종 상태
+   * @param {{ onSweepStart?: () => void }} hooks  onSweepStart: 대기가 끝나고 글로우가 위에서 쓸기 시작하는 순간 한 번 호출
+   *   (Reveal 영역 밖 요소 — 예: 헤더 색·로고 — 를 글로우와 같은 타이밍에 바꿀 때 사용)
+   */
+  play({ onSweepStart } = {}) {
+    const prev = this.prev; // finish()가 지우기 전에 꺼내 둠
+    this.prev = null;
     this.finish();
     // 블러 레이어를 지금의 선명 레이어 내용으로 다시 채움 → 재생 직전에 내용을 바꿔도 블러 구간에 새 내용이 보임
     this.blur.replaceChildren(...[...this.sharp.childNodes].map((n) => n.cloneNode(true)));
     this.skel.style.opacity = this.o.skeletonOpacity;
     this.skel.hidden = false;
     this.blur.hidden = false;
+    // 첫 프레임을 기다리지 않고 바로 콘텐츠를 가림 → 스켈레톤보다 새 내용이 한 프레임 먼저 보이는 깜빡임 방지
+    mask(this.sharp, 'transparent 0, transparent 100%');
+    mask(this.blur, 'transparent 0, transparent 100%');
+    if (prev) {
+      // 잡아 둔 이전 화면이 스켈레톤 위에서 서서히 사라짐
+      this.root.insertBefore(prev, this.canvas);
+      prev.animate([{ opacity: 1 }, { opacity: 0 }], { duration: this.o.enterDuration, easing: 'cubic-bezier(0.42, 0, 0.58, 1)', fill: 'forwards' })
+        .finished.then(() => prev.remove()).catch(() => prev.remove());
+    }
+    this.onSweepStart = onSweepStart;
     if (matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      this.sweepStarted();
       this.finish();
       return Promise.resolve();
     }
@@ -87,6 +118,13 @@ export class GenerationReveal {
       this.t0 = performance.now();
       this.raf = requestAnimationFrame(this.frame);
     });
+  }
+
+  /** onSweepStart를 한 번만 부름 */
+  sweepStarted() {
+    const f = this.onSweepStart;
+    this.onSweepStart = null;
+    f?.();
   }
 
   /** 즉시 중단하고 최종 상태(선명한 콘텐츠)로 */
@@ -107,6 +145,8 @@ export class GenerationReveal {
 
   finish() {
     cancelAnimationFrame(this.raf);
+    this.prev?.remove();
+    this.prev = null;
     mask(this.sharp, null);
     this.blur.hidden = true;
     this.skel.hidden = true;
@@ -188,6 +228,7 @@ export class GenerationReveal {
       mask(this.sharp, 'transparent 0, transparent 100%');
       mask(this.blur, 'transparent 0, transparent 100%');
     } else {
+      this.sweepStarted();
       const run = el - o.waitDuration;
       const p = Math.min(1, run / o.duration);
       edge = -10 + easeInOutQuad(p) * (H + band + 50); // 글로우 가장자리 위치

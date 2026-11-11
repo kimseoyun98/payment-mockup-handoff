@@ -1,23 +1,22 @@
 /* =========================================================
-   M3 색상 테마 토큰 (라이트 모드만)
-   출처: Figma 파일 '코리아 핀테크 영상 기획' 변수 컬렉션
+   M3 색상 테마 토큰 (라이트 모드만) — tools/gen-m3-theme.py 로 만든 파일, 직접 고치지 말 것
+   출처: Figma 변수 컬렉션
      - M3 · Palette : 테마별 실제 색상값 (Schemes/<역할>/Light)
      - M3 · Theme   : 역할별 색상 (Schemes/<역할>) → 이 파일의 --md-sys-color-<역할>
-   사용: 결제창 루트에 data-m3-theme="Pink" 처럼 테마 이름을 붙이면 아래 변수가 바뀜
-         UI에는 색상값 대신 역할 변수만 씀 (예: 버튼 배경 var(--md-sys-color-primary))
-   테마 이름 = 컬러 드롭다운 칩의 data-color 값과 같음 (Rose는 AI 추천 프리셋용, 칩 없음)
+   사용: 결제창 루트에 data-m3-theme="Pink" 처럼 테마 이름을 붙이면 아래 변수가 바뀜 (m3-theme.js의 setM3Theme)
+         요소 색은 var(--md-sys-color-<역할>, <기존 색>) 처럼 기존 색을 두 번째 값으로 둘 것
+         → 테마를 고르지 않았을 때는 이 파일이 아무 값도 정하지 않아 기존 서비스 색이 그대로 나옴
+   테마 이름 = 컬러 드롭다운 칩 이름 (Rose는 AI 추천 프리셋용, 칩 없음)
    ========================================================= */
-
-/* 테마를 고르지 않았을 때는 이 파일이 아무 값도 정하지 않음 → 기존 서비스 코드의 색이 그대로 나옴
-   요소 색은 var(--md-sys-color-<역할>, <기존 색>) 처럼 기존 색을 두 번째 값으로 둘 것 */
 
 [data-m3-theme="Baseline"] {
   --md-sys-color-primary: #7049d9;
+  --md-sys-color-outline-variant-pressed: #7049d9;
   --md-sys-color-on-primary: #ffffff;
   --md-sys-color-primary-container: #efe4ff;
   --md-sys-color-on-primary-container: #4f378a;
   --md-sys-color-background: #fef7ff;
-  --md-sys-color-surface: #ffffff;
+  --md-sys-color-surface: #f5f2ff;
   --md-sys-color-on-surface: #1d1b20;
   --md-sys-color-on-surface-variant: #49454f;
   --md-sys-color-outline-variant: #efe9f5;
@@ -27,27 +26,29 @@
 }
 
 [data-m3-theme="Green"] {
-  --md-sys-color-primary: #2fb081;
+  --md-sys-color-primary: #28a415;
+  --md-sys-color-outline-variant-pressed: #28a415;
   --md-sys-color-on-primary: #ffffff;
   --md-sys-color-primary-container: #e0f0e2;
   --md-sys-color-on-primary-container: #17472d;
   --md-sys-color-background: #f7fcf7;
-  --md-sys-color-surface: #ffffff;
+  --md-sys-color-surface: #f3fff2;
   --md-sys-color-on-surface: #1d2523;
   --md-sys-color-on-surface-variant: #526257;
   --md-sys-color-outline-variant: #eaf3ec;
   --md-sys-color-surface-container-lowest: #ffffff;
-  --md-sys-color-surface-container-low: #fafafa;
+  --md-sys-color-surface-container-low: #f9fff8;
   --md-sys-color-surface-container: #e1eedf;
 }
 
 [data-m3-theme="Monochrome"] {
   --md-sys-color-primary: #000000;
+  --md-sys-color-outline-variant-pressed: #000000;
   --md-sys-color-on-primary: #e2e2e2;
   --md-sys-color-primary-container: #fafafa;
   --md-sys-color-on-primary-container: #000000;
   --md-sys-color-background: #f9f9f9;
-  --md-sys-color-surface: #ffffff;
+  --md-sys-color-surface: #f2f2f2;
   --md-sys-color-on-surface: #1b1b1b;
   --md-sys-color-on-surface-variant: #474747;
   --md-sys-color-outline-variant: #eaeaea;
@@ -58,75 +59,80 @@
 
 [data-m3-theme="Pink"] {
   --md-sys-color-primary: #df267b;
+  --md-sys-color-outline-variant-pressed: #df267b;
   --md-sys-color-on-primary: #ffffff;
-  --md-sys-color-primary-container: #ffdceb;
-  --md-sys-color-on-primary-container: #6e334f;
-  --md-sys-color-background: #fff8f8;
-  --md-sys-color-surface: #ffffff;
-  --md-sys-color-on-surface: #21191c;
-  --md-sys-color-on-surface-variant: #504348;
-  --md-sys-color-outline-variant: #f9eef1;
+  --md-sys-color-primary-container: #ffd6ea;
+  --md-sys-color-on-primary-container: #7a1d4f;
+  --md-sys-color-background: #fff4fa;
+  --md-sys-color-surface: #ffecf6;
+  --md-sys-color-on-surface: #24161e;
+  --md-sys-color-on-surface-variant: #5c3f50;
+  --md-sys-color-outline-variant: #f5dfeb;
   --md-sys-color-surface-container-lowest: #ffffff;
-  --md-sys-color-surface-container-low: #fff9fa;
-  --md-sys-color-surface-container: #faeaee;
+  --md-sys-color-surface-container-low: #fff6fb;
+  --md-sys-color-surface-container: #f9dcec;
 }
 
 [data-m3-theme="Mint"] {
   --md-sys-color-primary: #0093a0;
+  --md-sys-color-outline-variant-pressed: #0093a0;
   --md-sys-color-on-primary: #ffffff;
   --md-sys-color-primary-container: #e4f5f0;
   --md-sys-color-on-primary-container: #004e41;
   --md-sys-color-background: #f4fcf9;
-  --md-sys-color-surface: #ffffff;
+  --md-sys-color-surface: #f2feff;
   --md-sys-color-on-surface: #1d2523;
   --md-sys-color-on-surface-variant: #4d655d;
   --md-sys-color-outline-variant: #e3edea;
   --md-sys-color-surface-container-lowest: #ffffff;
-  --md-sys-color-surface-container-low: #fafafa;
+  --md-sys-color-surface-container-low: #f8feff;
   --md-sys-color-surface-container: #d8f0e8;
 }
 
 [data-m3-theme="Orange"] {
-  --md-sys-color-primary: #ff893a;
+  --md-sys-color-primary: #f7931e;
+  --md-sys-color-outline-variant-pressed: #f7931e;
   --md-sys-color-on-primary: #ffffff;
-  --md-sys-color-primary-container: #ffeee2;
-  --md-sys-color-on-primary-container: #ff6600;
-  --md-sys-color-background: #fff8f5;
-  --md-sys-color-surface: #fdfdfd;
-  --md-sys-color-on-surface: #221a15;
-  --md-sys-color-on-surface-variant: #52443c;
-  --md-sys-color-outline-variant: #f4efec;
+  --md-sys-color-primary-container: #fff0d6;
+  --md-sys-color-on-primary-container: #7a4100;
+  --md-sys-color-background: #fffaf2;
+  --md-sys-color-surface: #fff7e8;
+  --md-sys-color-on-surface: #221b12;
+  --md-sys-color-on-surface-variant: #54473a;
+  --md-sys-color-outline-variant: #f3ece0;
   --md-sys-color-surface-container-lowest: #ffffff;
-  --md-sys-color-surface-container-low: #fafafa;
-  --md-sys-color-surface-container: #fff0ea;
+  --md-sys-color-surface-container-low: #fffcf5;
+  --md-sys-color-surface-container: #fff0d9;
 }
 
 [data-m3-theme="Blue"] {
   --md-sys-color-primary: #2b5893;
+  --md-sys-color-outline-variant-pressed: #2b5893;
   --md-sys-color-on-primary: #ffffff;
-  --md-sys-color-primary-container: #ebf0f7;
+  --md-sys-color-primary-container: #e1ecfa;
   --md-sys-color-on-primary-container: #143c6b;
   --md-sys-color-background: #f7faff;
-  --md-sys-color-surface: #ffffff;
+  --md-sys-color-surface: #f2f7ff;
   --md-sys-color-on-surface: #1d2523;
   --md-sys-color-on-surface-variant: #536174;
   --md-sys-color-outline-variant: #ebeef2;
   --md-sys-color-surface-container-lowest: #ffffff;
-  --md-sys-color-surface-container-low: #fafafa;
+  --md-sys-color-surface-container-low: #f5f9ff;
   --md-sys-color-surface-container: #dde4ed;
 }
 
 [data-m3-theme="Rose"] {
-  --md-sys-color-primary: #cc3b54;
+  --md-sys-color-primary: #b04f5c;
+  --md-sys-color-outline-variant-pressed: #b04f5c;
   --md-sys-color-on-primary: #ffffff;
-  --md-sys-color-primary-container: #fbe5ea;
-  --md-sys-color-on-primary-container: #72323f;
-  --md-sys-color-background: #fff8f7;
-  --md-sys-color-surface: #ffffff;
-  --md-sys-color-on-surface: #22191a;
-  --md-sys-color-on-surface-variant: #72545c;
-  --md-sys-color-outline-variant: #f3e9eb;
+  --md-sys-color-primary-container: #f6dfe1;
+  --md-sys-color-on-primary-container: #6b2f38;
+  --md-sys-color-background: #fcf7f6;
+  --md-sys-color-surface: #f9eeee;
+  --md-sys-color-on-surface: #241a1b;
+  --md-sys-color-on-surface-variant: #6b5254;
+  --md-sys-color-outline-variant: #eee2e2;
   --md-sys-color-surface-container-lowest: #ffffff;
-  --md-sys-color-surface-container-low: #fffafa;
-  --md-sys-color-surface-container: #fbeaeb;
+  --md-sys-color-surface-container-low: #fdf9f8;
+  --md-sys-color-surface-container: #f3e3e3;
 }
