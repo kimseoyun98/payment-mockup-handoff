@@ -107,13 +107,13 @@ function create2BMotionSVG(uid,stone=false){
         <stop offset="1" stop-color="#3559d2"/>
       </radialGradient>
       <radialGradient id="sp-${uid}">
-        <stop offset="0" stop-color="#fff" stop-opacity=".5"/>
-        <stop offset="1" stop-color="#fff" stop-opacity="0"/>
+        <stop offset="0" stop-color="#93c5fd" stop-opacity=".5"/>
+        <stop offset="1" stop-color="#93c5fd" stop-opacity="0"/>
       </radialGradient>
       <linearGradient id="sat-${uid}" class="sat-g" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="70" y2="70">
-        <stop offset="0" stop-color="#fff" stop-opacity="0"/>
-        <stop offset=".5" stop-color="#fff" stop-opacity=".26"/>
-        <stop offset="1" stop-color="#fff" stop-opacity="0"/>
+        <stop offset="0" stop-color="#93c5fd" stop-opacity="0"/>
+        <stop offset=".5" stop-color="#93c5fd" stop-opacity=".45"/>
+        <stop offset="1" stop-color="#93c5fd" stop-opacity="0"/>
       </linearGradient>
       <clipPath id="cp-${uid}"><circle class="rise-cp" cx="100" cy="132" r="30"/></clipPath>`:''}
       <linearGradient id="sh-${uid}" x1="0%" y1="0%" x2="100%" y2="20%">
@@ -212,7 +212,7 @@ function stone2B(root,isFin){
   if(!isFin){[sp,sat].forEach(e=>e.setAttribute('opacity',0));delete root.dataset.satT0;return;}
   const cy=+rise.getAttribute('cy'),r=+rise.getAttribute('r'),o=+rise.getAttribute('opacity');
   sp.setAttribute('cx',100);sp.setAttribute('cy',cy-r*.62);sp.setAttribute('rx',r*.62);sp.setAttribute('ry',r*.28);sp.setAttribute('opacity',o*.35); // 위쪽에 넓고 옅은 빛만 (가운데가 볼록해 보이지 않게)
-  // 새틴(비단) 광택: 원이 나타난 순간부터 넓고 옅은 빛줄기가 왼쪽 위 → 오른쪽 아래로 천천히 한 번 미끄러짐 (3.2초에 한 번)
+  // 새틴(비단) 광택: 원이 나타난 순간부터 넓고 옅은 하늘색(#93C5FD, 로딩 원통과 같은 색) 빛줄기가 왼쪽 위 → 오른쪽 아래로 천천히 한 번 미끄러짐 (3.2초에 한 번)
   cp.setAttribute('cy',cy);cp.setAttribute('r',r);sat.setAttribute('opacity',o);
   const now=performance.now();if(!root.dataset.satT0)root.dataset.satT0=now;
   const ph=((now-root.dataset.satT0)/3200)%1,c=30+ph*160; // 빛줄기 중심이 대각선을 따라 이동 (원 가장자리에서 들어와 원 밖으로). 성공 원이 보이는 1초 남짓 동안 가운데쯤까지 지나감
