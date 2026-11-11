@@ -221,7 +221,7 @@ function stone2B(root,isFin){
 L.load=el('div','load',{width:f(55)+'px',height:f(55)+'px',opacity:0});
 L.load.innerHTML=create2BMotionSVG('ld');
 L.ok=el('div','load',{width:f(55)+'px',height:f(55)+'px',left:X(PT.load6[0]-2)+'px',top:Y(PT.load6[1]-2)+'px',opacity:1});
-L.ok.innerHTML=create2BMotionSVG('ok',!EMBED);if(!EMBED)L.ok.style.background='transparent'; // 원 바깥에 흰 바탕 테두리가 비치지 않게 // 결제 성공 체크 원: 바둑알 질감은 단독 페이지에서만 (부스 ?embed는 기존 평면 원)
+L.ok.innerHTML=create2BMotionSVG('ok',true);L.ok.style.background='transparent'; // 결제 성공 원: 입체 질감 + 새틴 광택 (단독 · 부스 ?embed 공통). 원 바깥에 흰 바탕 테두리가 비치지 않게 투명 
 L.g6=el('div',null,{position:'absolute',inset:0,opacity:0});L.g6.append(L.s6,L.ok);
 L.sb=el('div','sb');L.hand=el('div','hand');L.white=el('div','white');
 scr.append(L.s1,L.s2,L.scroll,L.side,L.s3,L.sheet,L.sk,L.s5,L.g6,L.load,L.sb,L.hand,L.white);
