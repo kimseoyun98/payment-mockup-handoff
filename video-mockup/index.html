@@ -110,11 +110,12 @@ function create2BMotionSVG(uid,stone=false){
         <stop offset="0" stop-color="#fff" stop-opacity=".5"/>
         <stop offset="1" stop-color="#fff" stop-opacity="0"/>
       </radialGradient>
-      <linearGradient id="rm-${uid}" class="rm-g" x1="0" y1="0" x2="1" y2="0">
-        <stop offset=".3" stop-color="#fff" stop-opacity="0"/>
-        <stop offset=".5" stop-color="#fff" stop-opacity=".75"/>
-        <stop offset=".7" stop-color="#fff" stop-opacity="0"/>
-      </linearGradient>`:''}
+      <linearGradient id="sat-${uid}" class="sat-g" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="70" y2="70">
+        <stop offset="0" stop-color="#fff" stop-opacity="0"/>
+        <stop offset=".5" stop-color="#fff" stop-opacity=".26"/>
+        <stop offset="1" stop-color="#fff" stop-opacity="0"/>
+      </linearGradient>
+      <clipPath id="cp-${uid}"><circle class="rise-cp" cx="100" cy="132" r="30"/></clipPath>`:''}
       <linearGradient id="sh-${uid}" x1="0%" y1="0%" x2="100%" y2="20%">
         <stop offset="0%" stop-color="#fff" stop-opacity="0"/>
         <stop offset="50%" stop-color="#fff" stop-opacity=".55"/>
@@ -141,8 +142,7 @@ function create2BMotionSVG(uid,stone=false){
     
     <circle class="rise" cx="100" cy="132" r="30" fill="${stone?`url(#st-${uid})`:'#3C62DD'}" opacity="0"/>
     ${stone?`<ellipse class="rise-sp" cx="100" cy="132" rx="10" ry="6" fill="url(#sp-${uid})" opacity="0"/>
-    <circle class="rise-rim" cx="100" cy="132" r="30" fill="none" stroke="#6684e8" stroke-width="2.5" opacity="0"/>
-    <circle class="rise-shim" cx="100" cy="132" r="30" fill="none" stroke="url(#rm-${uid})" stroke-width="2.5" opacity="0"/>`:''}
+    <rect class="rise-sat" x="26" y="26" width="148" height="148" fill="url(#sat-${uid})" clip-path="url(#cp-${uid})" opacity="0"/>`:''}
     <path class="chk" d="M 75.5 101.5 L 92.5 118.5 L 125.5 84.5" fill="none" stroke="#fff" stroke-width="9" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="72" stroke-dashoffset="72" opacity="0"/>
   </svg>`;
 }
@@ -208,15 +208,14 @@ function render2B(root,t,finStart){
 /* 결제 성공 원 바둑알 질감 (create2BMotionSVG(uid,true)일 때만): 원을 따라 반사광(왼쪽 위) · 바닥 그림자 · 체크 그림자 */
 function stone2B(root,isFin){
   const sp=root.querySelector('.rise-sp');if(!sp)return;
-  const rise=root.querySelector('.rise'),rim=root.querySelector('.rise-rim'),shim=root.querySelector('.rise-shim'),g=root.querySelector('.rm-g');
-  if(!isFin){[sp,rim,shim].forEach(e=>e.setAttribute('opacity',0));return;}
+  const rise=root.querySelector('.rise'),sat=root.querySelector('.rise-sat'),cp=root.querySelector('.rise-cp'),g=root.querySelector('.sat-g');
+  if(!isFin){[sp,sat].forEach(e=>e.setAttribute('opacity',0));return;}
   const cy=+rise.getAttribute('cy'),r=+rise.getAttribute('r'),o=+rise.getAttribute('opacity');
   sp.setAttribute('cx',100);sp.setAttribute('cy',cy-r*.62);sp.setAttribute('rx',r*.62);sp.setAttribute('ry',r*.28);sp.setAttribute('opacity',o*.35); // 위쪽에 넓고 옅은 빛만 (가운데가 볼록해 보이지 않게)
-  // 동전 옆면처럼: 가장자리에 살짝 밝은 링 + 그 위를 천천히 도는 빛 (shimmer)
-  const rr=Math.max(0,r-1.25);[rim,shim].forEach(e=>{e.setAttribute('cy',cy);e.setAttribute('r',rr);});
-  rim.setAttribute('opacity',o*.55);shim.setAttribute('opacity',o);
-  const ang=(performance.now()/1000*140)%360; // 초당 140도
-  g.setAttribute('gradientTransform',`rotate(${ang.toFixed(1)} .5 .5)`);
+  // 새틴(비단) 광택: 원 면 위로 넓고 옅은 빛줄기가 왼쪽 위 → 오른쪽 아래로 비스듬히 미끄러짐 (1.6초마다)
+  cp.setAttribute('cy',cy);cp.setAttribute('r',r);sat.setAttribute('opacity',o);
+  const ph=(performance.now()/1600)%1,c=10+ph*180; // 빛줄기 중심이 대각선을 따라 이동 (원 밖 → 원 밖)
+  g.setAttribute('x1',c-35);g.setAttribute('y1',c-35);g.setAttribute('x2',c+35);g.setAttribute('y2',c+35);
 }
 L.load=el('div','load',{width:f(55)+'px',height:f(55)+'px',opacity:0});
 L.load.innerHTML=create2BMotionSVG('ld');
