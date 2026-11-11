@@ -22,13 +22,16 @@ const L = {
   wechatpay: [84, 53], alipay: [84, 53], alipayhk: [84, 53],
   kakaopay: [84, 53], tosspay: [84, 53], npay: [84, 53], samsungwallet: [84, 53], ssgpay: [84, 53], lpay: [84, 53],
   'woori-tile': [40.9, 30.2], // 우리카드는 타일 전체 크기로 뽑음 (임시 로고)
+  // 대표 결제수단 카드용: Figma global-logo(393:953) 70 × 44 같은 규격 6개 → 카드마다 로고 크기가 같게
+  'global-paypal': [70, 44], 'global-googlepay': [70, 44], 'global-applepay': [70, 44],
+  'global-wechatpay': [70, 44], 'global-alipay': [70, 44], 'global-alipayhk': [70, 44],
 };
 const CARDS = [[9.7, 65.6, 170.5, 24.4], [9.7, 92.9, 84.3, 24.4], [96, 92.9, 84.3, 24.4]]; // 대표 결제수단 카드 3개
 const TILES = [[56.5, 168.5], [99.4, 168.5], [56.5, 220.4], [99.4, 220.4], [142.3, 220.4], [56.5, 254.5], [99.4, 254.5], [142.3, 254.5]];
 const HEADS = [154.5, 206.5]; // 지역 제목 y (첫 지역 타일 2칸, 둘째 지역 타일 6칸)
 
 const STATE_BEFORE = {
-  cards: ['paypal', 'googlepay', 'applepay'],
+  cards: ['global-paypal', 'global-googlepay', 'global-applepay'],
   nav: ['글로벌', '중국', '홍콩', '한국', '인도네시아', '말레이시아'],
   heads: ['중국', '한국'],
   tiles: ['wechatpay', 'alipay', 'kakaopay', 'tosspay', 'npay', 'samsungwallet', 'ssgpay', 'lpay'],
@@ -36,7 +39,7 @@ const STATE_BEFORE = {
 // AI 추천: 상단 알리페이 / 위챗페이 / 알리페이 홍콩, 나라 싱가포르 > 태국 > 베트남 > 인도네시아 > 말레이시아 > 한국
 // 나라별 결제수단 로고가 아직 없어 타일은 우리카드 로고로 임시 표시
 const STATE_AI = {
-  cards: ['alipay', 'wechatpay', 'alipayhk'],
+  cards: ['global-alipay', 'global-wechatpay', 'global-alipayhk'],
   nav: ['싱가포르', '태국', '베트남', '인도네시아', '말레이시아', '한국'],
   heads: ['싱가포르', '태국'],
   tiles: Array(8).fill('woori-tile'),
