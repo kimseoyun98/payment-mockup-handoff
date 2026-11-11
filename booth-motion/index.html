@@ -34,8 +34,6 @@ body{background:#000;color:#fff;font-family:var(--f-ui);overflow:hidden}
 .fs.cur{opacity:1}
 /* 확대는 transform 대신 zoom: 작은 캔버스 좌표의 반올림 오차가 확대되며 화면끼리 몇 px씩 어긋나던 문제 방지 */
 .cv{position:absolute;left:0;top:0;width:190px;height:320px;zoom:var(--k);overflow:hidden}
-/* 하단 GNB(26)를 뺀 위쪽 294 영역의 가운데에 맞춤: 1~7번 화면 내용을 GNB 높이의 절반(13)만큼 위로. 배경은 그대로, 8번 결제창은 원래 0~294 */
-.fs:not(.s8)>.cv{top:-13px}
 .s8 .cv{background:#fff}
 .cv>*{position:absolute}
 .cv .t{left:-17px;width:224px;margin:0;text-align:center;font-weight:700;letter-spacing:-.02em;transform-origin:50% 0}
@@ -44,7 +42,8 @@ body{background:#000;color:#fff;font-family:var(--f-ui);overflow:hidden}
 .mask2{left:-11px;top:99px;width:212px;height:221px;-webkit-mask-image:linear-gradient(transparent 0,#000 10%,#000 55%,transparent 100%);mask-image:linear-gradient(transparent 0,#000 10%,#000 55%,transparent 100%)}
 .mask2 img{position:absolute;left:17.1px;width:177.8px}
 /* 1번 결제 장면 슬라이드 (Figma Img-Wrapper 31:9680): x 15 / y 137, 160 × 160, 라운드 9.9, 장면 10개(Img-Container Scene 1~10) */
-.ph1{left:15px;top:137px;width:160px;height:160px;border-radius:9.9px;overflow:hidden;-webkit-mask-image:-webkit-radial-gradient(white,black)}
+/* 하단 GNB에 맞춘 배치 (Figma flows 262:3660): 타이틀은 y 30 그대로, 아래 요소만 GNB(y 294) 위로 */
+.ph1{left:15px;top:115px;width:160px;height:160px;border-radius:9.9px;overflow:hidden;-webkit-mask-image:-webkit-radial-gradient(white,black)}
 .ph1 .strip{position:absolute;left:0;top:0;width:1760px;height:160px;background:url(assets/slides.png) 0 0/1600px 160px repeat-x}
 @font-face{font-family:"Wanted Sans";font-weight:800;font-display:swap;src:url(assets/WantedSans-ExtraBold.woff2) format("woff2")}
 @font-face{font-family:"Wanted Sans";font-weight:700;font-display:swap;src:url(assets/WantedSans-Bold.woff2) format("woff2")}
@@ -66,7 +65,7 @@ body{background:#000;color:#fff;font-family:var(--f-ui);overflow:hidden}
 .unit span{font-family:"Wanted Sans","Noto Sans KR",sans-serif;font-size:11.83px;line-height:15.9px;font-weight:700;letter-spacing:-.023em;white-space:nowrap;background:linear-gradient(180deg,#1577FE,#7EA9FF);-webkit-background-clip:text;background-clip:text;color:transparent}
 .bb{border-radius:50%}
 /* Figma 6번: 카드(상단만 라운드 11.3, 1px #DCDEE3) + 아래로 갈수록 투명해지는 마스크(카드 높이 45%부터) */
-.lang{left:24.9px;top:102.3px;width:142.1px;height:112.7px;box-sizing:border-box;background:#fff;border:1px solid #DCDEE3;border-bottom:0;border-radius:11.3px 11.3px 0 0;overflow:hidden;-webkit-mask-image:linear-gradient(#000 45%,transparent 100%);mask-image:linear-gradient(#000 45%,transparent 100%)}
+.lang{left:24.9px;top:93.3px;width:142.1px;height:112.7px;box-sizing:border-box;background:#fff;border:1px solid #DCDEE3;border-bottom:0;border-radius:11.3px 11.3px 0 0;overflow:hidden;-webkit-mask-image:linear-gradient(#000 45%,transparent 100%);mask-image:linear-gradient(#000 45%,transparent 100%)}
 .ltrack{position:absolute;top:35.2px;left:50%;height:20px;display:flex;align-items:center;white-space:nowrap}
 .ltrack span{width:60px;flex:none;text-align:center;font-size:10px;line-height:1;letter-spacing:-.04em;color:#D1D3D8;font-weight:700;transition:color calc(400ms*var(--slow)) var(--ease-move),font-size calc(400ms*var(--slow)) var(--ease-move)}
 .ltrack span.on{color:#555D6D;font-size:20.3px}
@@ -84,7 +83,7 @@ body{background:#000;color:#fff;font-family:var(--f-ui);overflow:hidden}
 .lv-pay-tc{width:1.985em;height:0.992em}
 .lv-pay-ko{width:3.359em;height:0.916em}
 .lv-pay-en{width:3.893em;height:0.916em}
-.pbtn{left:9.2px;top:182px;width:172.4px;height:38.5px;border-radius:999px;color:#fff;font-size:13.1px;font-weight:600;display:flex;align-items:center;justify-content:center;isolation:isolate}
+.pbtn{left:9.2px;top:171.25px;width:172.4px;height:38.5px;border-radius:999px;color:#fff;font-size:13.1px;font-weight:600;display:flex;align-items:center;justify-content:center;isolation:isolate}
 /* 버튼 뒤 푸른 글로우 (Figma: 125×26 알약, #217CF9 50%, 레이어 블러 40) → 버튼 배경은 ::after, 글로우는 그 뒤 ::before */
 .pbtn::before{content:"";position:absolute;left:23.7px;top:6.7px;width:125px;height:26px;border-radius:999px;background:var(--scr-blue);opacity:.5;filter:blur(20px);z-index:-2}
 .pbtn::after{content:"";position:absolute;inset:0;border-radius:inherit;background:var(--scr-blue);z-index:-1}
@@ -123,7 +122,7 @@ body{background:#000;color:#fff;font-family:var(--f-ui);overflow:hidden}
 .dev{touch-action:none;-webkit-user-select:none;user-select:none}
 /* 8번 결제창 PayPal 버튼: Figma에서 7번과 같은 남색 PayPal 로고 벡터로 통일 (x 9, y 50, 169×26, 모서리 5, 로고 = 버튼 높이 32.35% 가운데) */
 /* 4번 흰색 목업 (Figma Mobile-white): 기기 136×274 · 모서리 19.9 · 흰색, 화면 126×265 · 모서리 14 (x 5, y 4), 영상 영역 126×254 (y 15) */
-.phone{position:absolute;left:28px;top:29px;width:136px;height:274px;border-radius:19.88px;background:#fff;box-shadow:.35px 1.39px 8.37px rgba(0,0,0,.35),inset -1.39px -3.14px 2.44px rgba(0,0,0,.19)}
+.phone{position:absolute;left:33.7px;top:20.1px;scale:.9155;transform-origin:0 0;width:136px;height:274px;border-radius:19.88px;background:#fff;box-shadow:.35px 1.39px 8.37px rgba(0,0,0,.35),inset -1.39px -3.14px 2.44px rgba(0,0,0,.19)}
 .ph-scr{position:absolute;left:5px;top:4px;width:126px;height:265px;border-radius:14px;overflow:hidden;background:#fff}
 /* 4번 목업 속 결제 영상 = ../video-mockup/ 페이지를 그대로 불러옴 (?embed: 목업 화면만, 부스가 메시지로 재생). 터치는 부스로 가도록 iframe은 터치 안 받음 */
 .ph-scr iframe{position:absolute;inset:0;width:100%;height:100%;border:0;background:#fff;pointer-events:none}
@@ -177,23 +176,23 @@ body{background:#000;color:#fff;font-family:var(--f-ui);overflow:hidden}
           <h3 class="t" style="left:-16.5px;top:30px;font-size:14px;line-height:19.6px"><span class="ln"><span>원하는</span></span><span class="ln"><span>결제 수단으로 결제</span></span></h3>
           <div class="num" data-n="140"><svg class="plus" viewBox="0 0 20 20" aria-hidden="true"><defs><linearGradient id="plusGrad" x1="9.99" y1="-12.715" x2="9.99" y2="25.709" gradientUnits="userSpaceOnUse"><stop stop-color="#1577FE"/><stop offset="1" stop-color="#7EA9FF"/></linearGradient></defs><path d="M20 12.6079H0V7.39212H20V12.6079ZM7.3193 0H12.6807V20H7.3193V0Z" fill="url(#plusGrad)"/></svg></div>
           <div class="unit"><span>여 개 이상의 로컬 Pay</span></div>
-          <img class="bb" src="assets/zalo.png" alt="" style="left:63.6px;top:93px;width:60.7px;height:60.7px">
-          <img class="bb" src="assets/zalo.png" alt="" style="left:32.2px;top:145px;width:60.7px;height:60.7px">
-          <img class="bb" src="assets/zalo.png" alt="" style="left:93.6px;top:146px;width:60.7px;height:60.7px">
-          <img class="bb" src="assets/apple.png" alt="" style="left:-10.7px;top:185px;width:85.8px;height:85.8px">
-          <img class="bb" src="assets/shopee.png" alt="" style="left:112.2px;top:187.3px;width:82.9px;height:82.9px">
-          <img class="bb" src="assets/alipay.png" alt="" style="left:62.5px;top:197.5px;width:60.7px;height:60.7px">
-          <img class="bb" src="assets/google.png" alt="" style="left:22.5px;top:241px;width:80.1px;height:80.1px">
-          <img class="bb" src="assets/paypal.png" alt="" style="left:86.1px;top:243.9px;width:74.3px;height:74.3px">
-          <img class="bb" src="assets/wechat.png" alt="" style="left:-28.4px;top:250.7px;width:60.7px;height:60.7px">
-          <img class="bb" src="assets/dana.png" alt="" style="left:153.5px;top:250.7px;width:60.7px;height:60.7px">
+          <img class="bb" src="assets/zalo.png" alt="" style="left:63.6px;top:76px;width:60.7px;height:60.7px">
+          <img class="bb" src="assets/zalo.png" alt="" style="left:32.2px;top:128px;width:60.7px;height:60.7px">
+          <img class="bb" src="assets/zalo.png" alt="" style="left:93.6px;top:129px;width:60.7px;height:60.7px">
+          <img class="bb" src="assets/apple.png" alt="" style="left:-10.7px;top:168px;width:85.8px;height:85.8px">
+          <img class="bb" src="assets/shopee.png" alt="" style="left:112.2px;top:170.3px;width:82.9px;height:82.9px">
+          <img class="bb" src="assets/alipay.png" alt="" style="left:62.5px;top:180.5px;width:60.7px;height:60.7px">
+          <img class="bb" src="assets/google.png" alt="" style="left:22.5px;top:224px;width:80.1px;height:80.1px">
+          <img class="bb" src="assets/paypal.png" alt="" style="left:86.1px;top:226.9px;width:74.3px;height:74.3px">
+          <img class="bb" src="assets/wechat.png" alt="" style="left:-28.4px;top:233.7px;width:60.7px;height:60.7px">
+          <img class="bb" src="assets/dana.png" alt="" style="left:153.5px;top:233.7px;width:60.7px;height:60.7px">
         </div></div>
 
         <div class="fs" data-s="6"><div class="cv">
           <h3 class="t" style="left:-16.5px;top:30px;font-size:14px;line-height:19.6px"><span class="ln"><span>익숙한</span></span><span class="ln"><span>언어로 결제</span></span></h3>
           <div class="lang"><div class="ltrack"><span><i class="lv lv-tc" role="img" aria-label="繁體中文"></i></span><span><i class="lv lv-ko" role="img" aria-label="한국어"></i></span><span><i class="lv lv-en" role="img" aria-label="ENGLISH"></i></span><span><i class="lv lv-ja" role="img" aria-label="日本語"></i></span><span><i class="lv lv-sc" role="img" aria-label="简体中文"></i></span><span><i class="lv lv-tc" role="img" aria-label="繁體中文"></i></span><span><i class="lv lv-ko" role="img" aria-label="한국어"></i></span><span><i class="lv lv-en" role="img" aria-label="ENGLISH"></i></span><span><i class="lv lv-ja" role="img" aria-label="日本語"></i></span><span><i class="lv lv-sc" role="img" aria-label="简体中文"></i></span><span><i class="lv lv-tc" role="img" aria-label="繁體中文"></i></span></div></div>
           <div class="pbtn"><span class="ln"><span>결제하기</span></span></div>
-          <p class="foot" style="left:-17px;top:270px;width:224px;line-height:10px;white-space:nowrap"><span class="ln"><span>글로벌 고객에게</span></span><span class="ln"><span>익숙한 언어 사용으로 결제 이탈률을 줄이세요</span></span></p>
+          <p class="foot" style="left:-17px;top:240px;width:224px;line-height:10px;white-space:nowrap"><span class="ln"><span>글로벌 고객에게</span></span><span class="ln"><span>익숙한 언어 사용으로 결제 이탈률을 줄이세요</span></span></p>
         </div></div>
 
         <div class="fs" data-s="7"><div class="cv">
@@ -203,7 +202,7 @@ body{background:#000;color:#fff;font-family:var(--f-ui);overflow:hidden}
           <div class="pp pay7" style="top:188px"><img src="assets/pp.png" alt=""></div>
           <div class="dim"></div>
           <div class="hand"></div>
-          <p class="foot" style="left:-17px;top:268px;width:224.4px;line-height:18px"><span class="ln"><span>내 고객들이 자주 사용하는 결제수단을 가장 위로</span></span><span class="ln" style="display:none"><span></span></span></p>
+          <p class="foot" style="left:-17px;top:242px;width:224.4px;line-height:18px"><span class="ln"><span>내 고객들이 자주 사용하는 결제수단을 가장 위로</span></span><span class="ln" style="display:none"><span></span></span></p>
         </div></div>
 
         <div class="fs s8" data-s="8"><div class="cv">
