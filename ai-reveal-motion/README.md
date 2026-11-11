@@ -178,4 +178,5 @@ AI 추천 버튼, 채팅 모달, 로고, Reveal 글로우 색은 테마와 무�
 `booth-motion/` 8번 화면이 `../ai-reveal-motion/demo/?embed`로 데모를 불러옵니다. embed 모드에서는 결제창만 창 폭에 맞춰 꽉 차게 그리고, 아래 안내 줄이 없습니다.
 
 - 부모 → 데모: `{type:'ai-demo:reset'}` 처음 화면으로 · `{type:'ai-demo:lang', lang:'ko'|'en'}` 결제창 글자 언어 전환
+- 데모 → 부모: 헤더 지구본을 누르면 `{type:'ai-demo:toggle-lang'}` (부스가 전체 언어를 바꾸고 `ai-demo:lang`으로 다시 알려 줌). 단독으로 열었을 때는 지구본이 결제창 언어를 바로 바꿈
 - 영어 문구는 퍼즐 프로젝트 EN 스토리보드(`video-mockup/assets/sb2-en.png`, `sb-list-en.png`) 기준입니다. 싱가포르·베트남은 스토리보드에 없어 국가 영문명(Singapore, Vietnam)을 씁니다. AI 채팅 대사는 번역이 확정되지 않아 한국어로 둡니다.

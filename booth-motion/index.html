@@ -572,6 +572,8 @@ function doAct(act){
 const gnb=dev.querySelector('.gnb');
 // GNB 버튼은 그 버튼 동작만 (화면 터치로 넘어가지 않게, 위쪽 당김 시작으로도 안 잡히게)
 gnb.addEventListener('pointerdown',e=>e.stopPropagation());
+// 8번 결제창 헤더의 지구본 = GNB 언어 버튼과 같은 동작
+addEventListener('message',e=>{if(e.data&&e.data.type==='ai-demo:toggle-lang'&&!dev.classList.contains('is-off'))doAct('lang');});
 gnb.addEventListener('click',e=>{e.stopPropagation();const b=e.target.closest('button');if(b&&!dev.classList.contains('is-off'))doAct(b.dataset.act);});
 let pdStart=null;
 dev.addEventListener('pointerdown',e=>{const r=dev.getBoundingClientRect();pulled=false;

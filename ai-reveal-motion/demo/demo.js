@@ -174,8 +174,15 @@ document.getElementById('reset').addEventListener('click', () => {
 });
 
 /* ---------- 부스 화면(booth-motion) 8번 안에 끼워 넣을 때 (?embed) ----------
-   결제창만 창 폭에 맞춰 꽉 차게. 부스가 보내는 메시지: {type:'ai-demo:reset'} 처음 화면으로 · {type:'ai-demo:lang', lang:'ko'|'en'} 언어 전환 */
-if (new URLSearchParams(location.search).has('embed')) {
+   결제창만 창 폭에 맞춰 꽉 차게. 부스가 보내는 메시지: {type:'ai-demo:reset'} 처음 화면으로 · {type:'ai-demo:lang', lang:'ko'|'en'} 언어 전환
+   헤더 지구본을 누르면 부스에 {type:'ai-demo:toggle-lang'}을 보냄 → 부스 하단 GNB 언어 버튼과 같은 동작 (부스 전체 언어 전환) */
+const EMBED = new URLSearchParams(location.search).has('embed');
+// 헤더 지구본: 한국어 ↔ 영어. 부스 안에서는 부스가 전체 언어를 바꾸고 다시 알려 줌, 단독 데모에서는 결제창만 바로 전환
+document.querySelector('.phone .globe').addEventListener('click', () => {
+  if (EMBED) parent.postMessage({ type: 'ai-demo:toggle-lang' }, '*');
+  else setLang(LANG === 'en' ? 'ko' : 'en');
+});
+if (EMBED) {
   document.documentElement.classList.add('embed');
   const fitEmbed = () => document.documentElement.style.setProperty('--embed-k', innerWidth / 380);
   fitEmbed();
