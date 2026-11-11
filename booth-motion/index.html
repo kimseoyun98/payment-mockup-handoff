@@ -34,6 +34,8 @@ body{background:#000;color:#fff;font-family:var(--f-ui);overflow:hidden}
 .fs.cur{opacity:1}
 /* 확대는 transform 대신 zoom: 작은 캔버스 좌표의 반올림 오차가 확대되며 화면끼리 몇 px씩 어긋나던 문제 방지 */
 .cv{position:absolute;left:0;top:0;width:190px;height:320px;zoom:var(--k);overflow:hidden}
+/* 하단 GNB(26)를 뺀 위쪽 294 영역의 가운데에 맞춤: 1~7번 화면 내용을 GNB 높이의 절반(13)만큼 위로. 배경은 그대로, 8번 결제창은 원래 0~294 */
+.fs:not(.s8)>.cv{top:-13px}
 .s8 .cv{background:#fff}
 .cv>*{position:absolute}
 .cv .t{left:-17px;width:224px;margin:0;text-align:center;font-weight:700;letter-spacing:-.02em;transform-origin:50% 0}
