@@ -13,8 +13,9 @@
 ## 로컬에서 보기
 
 ```bash
-python -m http.server 8770
+python serve.py        # 레포 루트에서. 브라우저가 파일을 캐시하지 않게 띄움 (고친 JS가 바로 반영)
 ```
+`python -m http.server 8770`으로 띄워도 되지만, 그 경우 브라우저가 예전 JS를 캐시해서 고친 내용이 안 보일 수 있습니다 (그때는 Ctrl+Shift+R).
 - 부스 터치 화면: http://localhost:8770/booth-motion/
 - 영상용 목업: http://localhost:8770/video-mockup/ (`?lang=en`으로 영어)
 - AI 모션 데모: http://localhost:8770/ai-reveal-motion/demo/

@@ -288,6 +288,9 @@ export class AIChatPanel {
    */
   /** 끝까지 진행하면 true, 중간에 닫히면(X·바깥 터치) false */
   async run({ prompt, steps, onSent, close = true }) {
+    // 대사를 함수로 넘겨도 됨 (부르는 순간의 언어로 읽음)
+    if (typeof prompt === 'function') prompt = prompt();
+    if (typeof steps === 'function') steps = steps();
     this.cancelled = false;
     await this.open();
     const go = async (fn) => { if (!this.cancelled) await fn(); };

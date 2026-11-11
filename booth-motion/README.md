@@ -45,4 +45,4 @@
 
 ## 로컬에서 보기
 
-레포 루트에서 `python -m http.server 8770` → http://localhost:8770/booth-motion/
+레포 루트에서 `python serve.py` → http://localhost:8770/booth-motion/ (캐시 없이 띄우는 로컬 서버)
