@@ -51,4 +51,4 @@ export default function CheckoutModal() {
 
 ## 결제 성공 원 바둑알 질감 (단독 페이지만)
 
-`video-mockup/`을 단독으로 열면 결제 성공 체크 원이 바둑알처럼 볼록한 질감으로 그려집니다 (왼쪽 위 밝고 가장자리 어두운 면 + 반사광 + 바닥 그림자 + 체크 그림자, `create2BMotionSVG(uid, true)` · `stone2B`). 부스 화면이 불러오는 `?embed`에는 적용하지 않아 기존 평면 원 그대로입니다.
+`video-mockup/`을 단독으로 열면 결제 성공 체크 원에 은은한 입체감을 줍니다 (위쪽이 살짝 밝은 면 + 위쪽 옅은 빛 + 옅은 바닥 그림자 + 체크 그림자, `create2BMotionSVG(uid, true)` · `stone2B`). 부스 화면이 불러오는 `?embed`에는 적용하지 않아 기존 평면 원 그대로입니다.
