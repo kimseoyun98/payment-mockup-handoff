@@ -129,9 +129,19 @@ body{background:#000;color:#fff;font-family:var(--f-ui);overflow:hidden}
 .ph-spk{position:absolute;left:47.08px;top:3.84px;width:41.85px;height:9.07px;border-radius:0 0 10.46px 10.46px;background:#fff}
 .ph-spk i{position:absolute;left:10.81px;top:3.48px;width:18.83px;height:1.39px;border-radius:2.79px;background:#CFCFCF}
 .ph-spk b{position:absolute;left:31.03px;top:3.48px;width:1.39px;height:1.39px;border-radius:50%;background:#CFCFCF}
-.pp8{visibility:hidden;left:9.7px;top:77.6px;width:170.5px;height:24.4px;border-radius:5px;background:#fff;overflow:hidden}
-/* 8번 결제창 = ../ai-reveal-motion/demo/ 페이지를 그대로 불러옴 (?embed: 결제창 380 × 592를 폭 190에 맞춤 → 190 × 296). PayPal 자리(.pp8)는 데모의 대표 결제수단 첫 칸 */
-.cv iframe.pw{left:0;top:12px;width:190px;height:296px;border:0;background:#fff}
+.pp8{visibility:hidden;left:9.7px;top:65.6px;width:170.5px;height:24.4px;border-radius:5px;background:#fff;overflow:hidden}
+/* 8번 결제창 = ../ai-reveal-motion/demo/ 페이지를 그대로 불러옴 (?embed: 결제창 380 × 592를 폭 190에 맞춤 → 190 × 296, 위 294만 보임 · 아래는 GNB). PayPal 자리(.pp8)는 데모의 대표 결제수단 첫 칸 */
+.cv iframe.pw{left:0;top:0;width:190px;height:294px;border:0;background:#fff}
+/* 하단 GNB (Figma 컴포넌트 gnb 272:5833): 모든 화면 맨 아래 y 294, 190 × 26, #F5F5F5. 버튼 18px 흰 원 · 아이콘 10px #55678D, 간격 24, 가로 가운데
+   순서: 이전(U턴 화살표) · 처음으로(반시계 화살표) · 언어(KR = '가' 글자 / EN = 'A' 글자) */
+.gnb-layer{z-index:25;pointer-events:none}
+.gnb{left:0;top:294px;width:190px;height:26px;background:#F5F5F5;display:flex;justify-content:center;align-items:center;gap:24px;pointer-events:auto}
+.gnb button{width:18px;height:18px;padding:0;border:0;border-radius:50%;background:#fff;display:grid;place-items:center;cursor:pointer;-webkit-tap-highlight-color:transparent;transition:transform .12s ease}
+.gnb button:active{transform:scale(.92)}
+.gnb svg{width:10px;height:10px;display:block}
+.gnb [data-act="lang"] svg{width:12px;height:12px}
+.gnb [data-act="lang"] .en,.gnb [data-act="lang"][aria-pressed="true"] .ko{display:none}
+.gnb [data-act="lang"][aria-pressed="true"] .en{display:block}
 .fs.cur iframe.pw{pointer-events:auto} /* 화면 묶음(.fs)은 터치를 안 받으므로, 지금 보이는 8번 결제창만 터치를 받게 */
 .fly{position:absolute;z-index:15;background:#fff;overflow:hidden}
 /* 로고만 잘라 보이는 창: 버튼 높이의 32.35%, Figma 로고 비율 40.9:11 고정 → 크기가 변해도 찌그러지지 않음 */
@@ -204,6 +214,11 @@ body{background:#000;color:#fff;font-family:var(--f-ui);overflow:hidden}
           <button type="button" class="pdb" data-act="back" style="top:166px" aria-label="이전 화면으로"><svg viewBox="0 0 12 12" aria-hidden="true"><path fill-rule="evenodd" clip-rule="evenodd" d="M1 3.84941C1 3.92941 1.015 4.00941 1.045 4.07941C1.07 4.13941 1.11 4.19441 1.155 4.23941C1.165 4.24941 1.165 4.26441 1.175 4.26941L3.425 6.51941C3.66 6.75441 4.04 6.75441 4.275 6.51941C4.51 6.28441 4.51 5.90441 4.275 5.66941L3.05 4.44441H7.225C8.755 4.44441 10 5.68941 10 7.21941C10 8.74941 8.755 9.99441 7.225 9.99441H4.415C4.085 9.99441 3.815 10.2644 3.815 10.5944C3.815 10.9244 4.085 11.1944 4.415 11.1944H7.225C9.42 11.1944 11.2 9.41441 11.2 7.21941C11.2 5.02441 9.42 3.24441 7.225 3.24441H3.05L4.275 2.01941C4.51 1.78441 4.51 1.40441 4.275 1.16941C4.04 0.934414 3.66 0.934414 3.425 1.16941L1.175 3.42441C1.175 3.42441 1.16 3.44441 1.155 3.45441C1.11 3.50441 1.075 3.55441 1.045 3.61441C1.015 3.68941 1 3.76441 1 3.84441V3.84941Z"/></svg></button>
           <button type="button" class="pdb" data-act="close" style="top:204px" aria-label="체험 끄기"><svg viewBox="0 0 12 12" aria-hidden="true"><path fill-rule="evenodd" clip-rule="evenodd" d="M1.67527 10.5262C1.91027 10.7612 2.29027 10.7612 2.52527 10.5262L6.10025 6.95122L9.67525 10.5262C9.91025 10.7612 10.2902 10.7612 10.5252 10.5262C10.7602 10.2912 10.7602 9.91122 10.5252 9.67622L6.95025 6.10122L10.5252 2.52625C10.7602 2.29125 10.7602 1.91125 10.5252 1.67625C10.2902 1.44125 9.91025 1.44125 9.67525 1.67625L6.10025 5.25122L2.52527 1.67625C2.29027 1.44125 1.91027 1.44125 1.67527 1.67625C1.44027 1.91125 1.44027 2.29125 1.67527 2.52625L5.25025 6.10122L1.67527 9.67622C1.44027 9.91122 1.44027 10.2912 1.67527 10.5262Z"/></svg></button>
         </div>
+        <div class="cv gnb-layer"><nav class="gnb" aria-label="화면 이동">
+          <button type="button" data-act="back" aria-label="이전 화면으로"><svg viewBox="0 0 10 10" aria-hidden="true"><path fill-rule="evenodd" clip-rule="evenodd" d="M0.833252 3.20784C0.833252 3.27451 0.845752 3.34118 0.870752 3.39951C0.891585 3.44951 0.924919 3.49534 0.962419 3.53285C0.970752 3.54118 0.970752 3.55368 0.979085 3.55784L2.85409 5.43284C3.04992 5.62868 3.36659 5.62868 3.56242 5.43284C3.75825 5.23701 3.75825 4.92034 3.56242 4.72451L2.54159 3.70368H6.02075C7.29575 3.70368 8.33325 4.74118 8.33325 6.01618C8.33325 7.29118 7.29575 8.32868 6.02075 8.32868H3.67909C3.40409 8.32868 3.17909 8.55368 3.17909 8.82868C3.17909 9.10368 3.40409 9.32868 3.67909 9.32868H6.02075C7.84992 9.32868 9.33325 7.84535 9.33325 6.01618C9.33325 4.18701 7.84992 2.70368 6.02075 2.70368H2.54159L3.56242 1.68285C3.75825 1.48701 3.75825 1.17035 3.56242 0.974512C3.36659 0.778678 3.04992 0.778678 2.85409 0.974512L0.979085 2.85368C0.979085 2.85368 0.966585 2.87035 0.962419 2.87868C0.924919 2.92035 0.895752 2.96201 0.870752 3.01201C0.845752 3.07451 0.833252 3.13701 0.833252 3.20368V3.20784Z" fill="#55678D"/></svg></button>
+          <button type="button" data-act="home" aria-label="처음으로"><svg viewBox="0 0 10 10" aria-hidden="true"><path d="M4.75186 0.645355C7.18382 0.645355 9.16678 2.58641 9.16678 4.99952C9.16678 7.41265 7.18382 9.35369 4.75186 9.35369C2.69783 9.35369 0.967154 7.97294 0.474734 6.09056C0.404845 5.82344 0.564763 5.55019 0.831913 5.48031C1.09907 5.41044 1.37229 5.57035 1.44218 5.83748C1.81973 7.28077 3.15359 8.35369 4.75186 8.35369C6.64632 8.35369 8.16678 6.84569 8.16678 4.99952C8.16678 3.15338 6.64632 1.64536 4.75186 1.64536C3.58699 1.64536 2.56398 2.21481 1.94675 3.0831H2.97933C3.25547 3.0831 3.47933 3.30696 3.47933 3.5831C3.47933 3.85924 3.25547 4.0831 2.97933 4.0831H0.895996C0.619854 4.0831 0.395996 3.85924 0.395996 3.5831V1.49977C0.395996 1.22363 0.619854 0.999768 0.895996 0.999768C1.17214 0.999768 1.396 1.22363 1.396 1.49977V2.16797C2.20658 1.23515 3.4084 0.645355 4.75186 0.645355Z" fill="#55678D"/></svg></button>
+          <button type="button" data-act="lang" aria-pressed="false" aria-label="영어로 보기"><svg class="ko" viewBox="0 0 12 12" aria-hidden="true"><path d="M4.99493 2.21H2.17993C1.76543 2.21 1.42993 2.5455 1.42993 2.96C1.42993 3.3745 1.76543 3.71 2.17993 3.71H4.89393C4.70043 4.714 4.04193 6.4795 1.82093 7.692C1.45743 7.89 1.32343 8.346 1.52193 8.7095C1.65793 8.959 1.91543 9.1 2.18093 9.1C2.30243 9.1 2.42543 9.0705 2.53943 9.008C5.38393 7.456 6.17243 5.1245 6.38943 3.871C6.46043 3.455 6.34593 3.0325 6.07493 2.711C5.80593 2.3925 5.41243 2.2095 4.99543 2.2095L4.99493 2.21Z" fill="#55678D"/><path d="M9.81982 4.68H8.70532V1.63C8.70532 1.2155 8.36932 0.880005 7.95532 0.880005C7.54132 0.880005 7.20532 1.2155 7.20532 1.63V10.35C7.20532 10.764 7.54132 11.1 7.95532 11.1C8.36932 11.1 8.70532 10.764 8.70532 10.35V6.18H9.81982C10.2338 6.18 10.5698 5.8445 10.5698 5.43C10.5698 5.0155 10.2338 4.68 9.81982 4.68Z" fill="#55678D"/></svg><svg class="en" viewBox="0 0 12 12" aria-hidden="true"><path d="M10.1481 9.61081L6.81506 1.94781C6.66506 1.57931 6.31206 1.34131 5.91506 1.34131C5.51806 1.34131 5.16456 1.57981 5.01706 1.94331L3.02256 6.76831C3.01756 6.77931 3.01306 6.79081 3.00856 6.80231L1.84206 9.62331C1.68406 10.0063 1.86556 10.4448 2.24856 10.6028C2.34256 10.6418 2.43956 10.6598 2.53506 10.6598C2.82956 10.6598 3.10856 10.4853 3.22856 10.1963L4.20906 7.82481H7.73606L8.77256 10.2093C8.93806 10.5893 9.37856 10.7628 9.76006 10.5978C10.1396 10.4323 10.3136 9.99031 10.1486 9.61031L10.1481 9.61081ZM4.82856 6.32481L5.92756 3.66681L7.08356 6.32481H4.82906H4.82856Z" fill="#55678D"/></svg></button>
+        </nav></div>
         <div class="off-screen"></div>
         <div class="ov ov-white" style="position:absolute;inset:0;background:#fff;opacity:0;pointer-events:none;z-index:20"></div>
       </div>
@@ -247,7 +262,7 @@ function glow(root,sel){
     leavesOf(h).forEach(l=>{const lr=l.getBoundingClientRect(),x=(lr.left-hr.left)/kl,y=(lr.top-hr.top)/kl;
       l.classList.add('gl');l.style.backgroundSize=`${2*W}px ${H}px, ${W}px ${H}px`;
       const p=b=>`${b-W-x}px ${-y}px, ${-x}px ${-y}px`;
-      l.animate([{backgroundPosition:p(-0.4*W),offset:0,easing:ez('move')},{backgroundPosition:p(1.4*W),offset:5/7},{backgroundPosition:p(1.4*W),offset:1}],{duration:7000*S.slow,iterations:Infinity});
+      l.animate([{backgroundPosition:p(-0.4*W),offset:0,easing:ez('move')},{backgroundPosition:p(1.4*W),offset:5/7},{backgroundPosition:p(1.4*W),offset:1}],{duration:7000,iterations:Infinity});
     });
   });
 }
@@ -515,14 +530,18 @@ async function runFlow(startAt=-1,{gateFirst=false}={}){
   let k;
   let skip=false;
   if(startAt<0){CURSCR='1';showScene('1');setNow(NAMES[1]);await ENTER[1](SC[1],alive);k=0;}
-  else{const fr=FLOW[startAt].from;CURSCR=fr;showScene(fr);setNow(NAMES[fr]);await ENTER[fr](SC[fr],alive);k=startAt;skip=!gateFirst;
-    if(startAt===3&&alive()){await transition(FLOW[2],alive);CURSCR='4';}}
+  else if(startAt===3){ // 4번으로 바로: 3번 등장 + 3→4 카피 이동을 순식간에 끝내고 4번 자리에서 시작 (3번을 처음부터 다시 보여주지 않음)
+    CURSCR='4';showScene('3');setNow(NAMES[3]);
+    const sl=S.slow;S.slow=0.0001;try{await ENTER['3'](SC['3'],alive);if(alive())await transition(FLOW[2],alive);}finally{S.slow=sl;}
+    k=3;skip=!gateFirst;}
+  else{const fr=FLOW[startAt].from;CURSCR=fr;showScene(fr);setNow(NAMES[fr]);await ENTER[fr](SC[fr],alive);k=startAt;skip=!gateFirst;}
   while(alive()){
     // 전환 칩으로 들어온 첫 구간은 바로 재생, 그 외에는 화면별 넘김 규칙(자동/터치)을 따름
     if(skip){await wait(600);skip=false;}else await gate(k,alive);
     if(!alive())return;
     const tr=FLOW[k];chipsEl.querySelectorAll('button').forEach((b,i)=>b.classList.toggle('on',i===k));
     setNow(tr.label,TYPE_NAME[tr.type]);
+    CURSCR=tr.type==='inner'?'4':tr.to; // 전환이 시작되면 이미 다음 화면으로 침 → 전환 중 터치는 그다음 화면으로
     await transition(tr,alive);if(!alive())return;
     CURSCR=tr.type==='inner'?'4':tr.to;setNow(NAMES[tr.to]);k=(k+1)%FLOW.length;
   }
@@ -535,16 +554,24 @@ function closePanel(){if(!pd.classList.contains('open'))return;pd.classList.remo
 const START_OF={'1':-1,'2':1,'3':2,'4':3,'5':4,'6':5,'7':6,'8':7},PREV_OF={'1':'1','2':'1','3':'2','4':'3','5':'4','6':'5','7':'6','8':'7'};
 pd.addEventListener('click',e=>{e.stopPropagation();const b=e.target.closest('.pdb');
   closePanel();if(!b)return; // 빈 곳 탭 → 닫기만
-  const act=b.dataset.act;
+  doAct(b.dataset.act);
+});
+// 상단 패널 · 하단 GNB 공통 동작: 처음으로 / 이전 / 언어 / 끄기(패널에만)
+const langBtns=()=>[pdLang,gnb.querySelector('[data-act="lang"]')];
+function doAct(act){
   if(act==='home')runFlow(-1);
   if(act==='back'){const p=PREV_OF[CURSCR];runFlow(START_OF[p],{gateFirst:true});}
   if(act==='lang'){ // KR(기본) ↔ EN 전환, 보던 화면부터 바뀐 언어로 다시 재생
-    const on=pdLang.getAttribute('aria-pressed')!=='true';pdLang.setAttribute('aria-pressed',on);pdLang.setAttribute('aria-label',on?'한국어로 보기':'영어로 보기');
+    const on=LANG!=='en';langBtns().forEach(b=>{b.setAttribute('aria-pressed',on);b.setAttribute('aria-label',on?'한국어로 보기':'영어로 보기');});
     flowGen++;clearAll();setLang(on?'en':'ko');runFlow(START_OF[CURSCR],{gateFirst:true});} // gateFirst: 4번 목업 시퀀스처럼 화면 안 동작을 건너뛰지 않게
   if(act==='close'){ // 체험 끄기: 모든 진행을 멈추고 화면을 꺼진 상태(검정)로 전환
     flowGen++;tapWaiter=null;dev.classList.remove('wait-tap');dev.classList.add('is-off');setNow('꺼짐','위쪽 "다시 재생" 버튼으로 다시 켜기');
     setTimeout(()=>{if(dev.classList.contains('is-off'))clearAll();},700);}
-});
+}
+const gnb=dev.querySelector('.gnb');
+// GNB 버튼은 그 버튼 동작만 (화면 터치로 넘어가지 않게, 위쪽 당김 시작으로도 안 잡히게)
+gnb.addEventListener('pointerdown',e=>e.stopPropagation());
+gnb.addEventListener('click',e=>{e.stopPropagation();const b=e.target.closest('button');if(b&&!dev.classList.contains('is-off'))doAct(b.dataset.act);});
 let pdStart=null;
 dev.addEventListener('pointerdown',e=>{const r=dev.getBoundingClientRect();pulled=false;
   if(!pd.classList.contains('open')&&e.clientY-r.top<r.height*.12){pdStart={y:e.clientY,h:r.height};e.preventDefault();try{dev.setPointerCapture(e.pointerId);}catch(_){}}});
