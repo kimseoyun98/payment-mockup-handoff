@@ -1,0 +1,871 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>부스 터치 화면 모션</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;800&family=IBM+Plex+Sans+KR:wght@400;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: control bar, then the full-flow device (Figma 190×320 coordinates scaled up), then text/point/easing samples */
+:root{
+  --bg:#EEF1F6; --panel:#FFFFFF; --fg:#1C2333; --muted:#5E6779; --line:#D7DCE6; --accent:#2F6BF2; --accent-ink:#FFFFFF;
+  /* device content always uses the Figma booth look */
+  --scr-top:#F6FFFB; --scr-bot:#CCDAFF; /* Figma: 흰 바탕 위에 그라데이션 50% 투명도 */ --scr-bg:linear-gradient(rgba(246,255,251,.5),rgba(204,218,255,.5)),#fff; --scr-ink:#555D6D; --scr-blue:#217CF9;
+  --f-ui:"IBM Plex Sans KR","Noto Sans KR",system-ui,sans-serif; --f-scr:"Noto Sans KR",system-ui,sans-serif; --f-mono:"IBM Plex Mono",ui-monospace,monospace;
+  --slow:1; --ease-move:cubic-bezier(0.65,0,0.35,1); --k:1.8;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--bg:#141822;--panel:#1D2230;--fg:#E7EAF1;--muted:#9AA3B5;--line:#2C3344;--accent:#6E97FF;--accent-ink:#0E1220;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#141822;--panel:#1D2230;--fg:#E7EAF1;--muted:#9AA3B5;--line:#2C3344;--accent:#6E97FF;--accent-ink:#0E1220;color-scheme:dark}
+body{background:var(--bg);color:var(--fg);font-family:var(--f-ui);line-height:1.6}
+.wrap{max-width:1180px;margin:0 auto;padding-block:32px 64px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:flex;flex-direction:column;gap:28px}
+h1{font-size:26px;margin:0;text-wrap:balance}
+.lede{margin:6px 0 0;color:var(--muted);max-width:62ch}
+.bar{display:flex;flex-wrap:wrap;gap:12px 24px;align-items:center;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px 18px;position:sticky;top:env(safe-area-inset-top,0px);z-index:30}
+.grp{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.lbl{font-size:12px;letter-spacing:.04em;color:var(--muted)}
+.seg{display:inline-flex;flex-wrap:wrap;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.seg button{font:inherit;font-size:13px;padding:6px 12px;border:0;background:transparent;color:var(--fg);cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink)}
+.seg button+button{border-left:1px solid var(--line)}
+button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.chk{display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer}
+.replay{margin-left:auto;font:inherit;font-size:13px;padding:7px 14px;border-radius:8px;border:1px solid var(--accent);background:transparent;color:var(--accent);cursor:pointer}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:18px;display:flex;flex-direction:column;gap:14px;min-width:0}
+.card .no{font-family:var(--f-mono);font-size:12px;color:var(--accent)}
+.card h2{font-size:15px;margin:0}
+.card p{margin:0;font-size:13px;color:var(--muted)}
+
+/* shared text machinery */
+.ln{display:block;overflow:hidden;padding-bottom:.06em}
+.ln>span{display:inline-block}
+.debug .ln,.debug .ch{outline:1px dashed #E2534A;outline-offset:-1px}
+.ch{display:inline-block;overflow:hidden;vertical-align:top}
+.ch>span,.sp,.wd{display:inline-block;white-space:pre}
+.mode-blur .ln,.mode-spring .ln,.mode-zoom .ln,.mode-combo .ln{overflow:visible}
+.mode-combo .wd{display:inline-block}
+.gl{background-image:linear-gradient(100deg,rgba(200,214,244,0) 38%,rgba(200,214,244,.55) 50%,rgba(200,214,244,0) 62%),linear-gradient(180deg,#444A57,#596E9A);background-repeat:repeat-x,no-repeat;-webkit-background-clip:text;background-clip:text;color:transparent;-webkit-text-fill-color:transparent}
+
+/* flow device */
+.flowsec{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:20px;display:grid;gap:14px}
+.flowsec>h2{font-size:17px;margin:0}
+.flowsec>p{margin:0;color:var(--muted);font-size:13px;max-width:70ch}
+.flowwrap{display:flex;flex-wrap:wrap;gap:24px;align-items:flex-start}
+/* 전체화면: 키오스크 화면만 검은 배경 가운데에 화면 높이(또는 폭)에 꽉 차게 */
+.fsbtn{font:inherit;font-size:13px;padding:7px 14px;border-radius:8px;border:1px solid var(--accent);background:var(--accent);color:#fff;cursor:pointer;margin-bottom:12px}
+.flowwrap.is-full{position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;background:#000;gap:0;margin:0}
+.flowwrap.is-full>:not(.dev):not(.fsclose){display:none}
+.flowwrap.is-full .dev{width:min(100vw,calc(100vh*190/320));border-radius:0;box-shadow:none}
+body.has-full{overflow:hidden}
+.fsclose{display:none;position:absolute;top:12px;right:12px;width:36px;height:36px;border:0;border-radius:50%;background:rgba(255,255,255,.14);color:#fff;font-size:20px;line-height:36px;cursor:pointer}
+.flowwrap.is-full .fsclose{display:block}
+.dev{position:relative;flex:none;width:min(100%,360px);aspect-ratio:190/320;border-radius:14px;overflow:hidden;background:var(--scr-bg);box-shadow:0 1px 0 var(--line),0 16px 40px -22px rgba(20,30,60,.5);font-family:var(--f-scr);color:var(--scr-ink);cursor:pointer}
+.fs{position:absolute;inset:0;opacity:0;pointer-events:none}
+.fs.cur{opacity:1}
+/* 확대는 transform 대신 zoom: 작은 캔버스 좌표의 반올림 오차가 확대되며 화면끼리 몇 px씩 어긋나던 문제 방지 */
+.cv{position:absolute;left:0;top:0;width:190px;height:320px;zoom:var(--k);overflow:hidden}
+.s8 .cv{background:#fff}
+.cv>*{position:absolute}
+.cv .t{left:-17px;width:224px;margin:0;text-align:center;font-weight:700;letter-spacing:-.02em;transform-origin:50% 0}
+.cv .sub,.cv .foot{margin:0;text-align:center;color:#555D6D;font-size:7.36px;line-height:1.4}
+.cv img{display:block}
+.mask2{left:-11px;top:99px;width:212px;height:221px;-webkit-mask-image:linear-gradient(transparent 0,#000 10%,#000 55%,transparent 100%);mask-image:linear-gradient(transparent 0,#000 10%,#000 55%,transparent 100%)}
+.mask2 img{position:absolute;left:17.1px;width:177.8px}
+/* 1번 결제 장면 슬라이드 (Figma Img-Wrapper 31:9680): x 15 / y 137, 160 × 160, 라운드 9.9, 장면 10개(Img-Container Scene 1~10) */
+.ph1{left:15px;top:137px;width:160px;height:160px;border-radius:9.9px;overflow:hidden;-webkit-mask-image:-webkit-radial-gradient(white,black)}
+.ph1 .strip{position:absolute;left:0;top:0;width:1760px;height:160px;background:url(assets/slides.png) 0 0/1600px 160px repeat-x}
+@font-face{font-family:"Wanted Sans";font-weight:800;font-display:swap;src:url(assets/WantedSans-ExtraBold.woff2) format("woff2")}
+@font-face{font-family:"Wanted Sans";font-weight:700;font-display:swap;src:url(assets/WantedSans-Bold.woff2) format("woff2")}
+/* Figma 5번(숫자 장면 63:1653): Wanted Sans ExtraBold 62px, 자간 -6%, #1577FE→#7EA9FF 세로 그라데이션 */
+.num{left:0;top:134px;width:190px;height:62px;display:flex;justify-content:center;font-family:"Wanted Sans","Noto Sans KR",sans-serif;font-size:62px;line-height:62px;font-weight:800;letter-spacing:-.06em}
+/* 롤링 창: 숫자 칸을 2.2em으로 벌려 이웃 숫자가 창 밖에 있게 하고, 창 위아래 각 0.57em을 부드럽게 페이드 → 잘리는 경계가 뚝 끊기지 않음 */
+/* 자간 -6%가 칸 폭을 줄여 '0' 오른쪽이 칸 밖으로 잘리던 문제 → 칸 안쪽 좌우 여백 .12em을 주고 같은 만큼 바깥 여백으로 당겨 자간 유지 */
+.num .col{height:2.2em;padding:0 .12em;margin:-.6em -.15em;letter-spacing:0;-webkit-mask-image:linear-gradient(transparent,#000 26%,#000 74%,transparent);mask-image:linear-gradient(transparent,#000 26%,#000 74%,transparent)}
+.num .col i{height:2.2em;line-height:2.2em;text-align:center;white-space:nowrap}
+.num .col i{background:linear-gradient(180deg,#1577FE 27.3%,#7EA9FF 72.7%);-webkit-background-clip:text;background-clip:text;color:transparent}
+/* "+"는 Figma 벡터(146:1639) 그대로: 20 × 20, 숫자와 간격 5.46, 세로 가운데 */
+.num svg.plus{display:block;flex:none;width:20px;height:20px;align-self:center;margin-left:7.36px}
+.fs[data-s="5"] .num{left:1.45px} /* Figma 배치: 140 시작 x 29.3, + x 141.7 */
+.num .plus{display:inline-block;height:1em}
+.col{display:inline-block;height:1em;overflow:hidden}
+.col>span{display:flex;flex-direction:column}
+.col i{font-style:normal;height:1em;display:block}
+.unit{left:0;top:200px;width:190px;display:flex;justify-content:center}
+.unit span{font-family:"Wanted Sans","Noto Sans KR",sans-serif;font-size:11.83px;line-height:15.9px;font-weight:700;letter-spacing:-.023em;white-space:nowrap;background:linear-gradient(180deg,#1577FE,#7EA9FF);-webkit-background-clip:text;background-clip:text;color:transparent}
+.bb{border-radius:50%}
+/* Figma 6번: 카드(상단만 라운드 11.3, 1px #DCDEE3) + 아래로 갈수록 투명해지는 마스크(카드 높이 45%부터) */
+.lang{left:24.9px;top:102.3px;width:142.1px;height:112.7px;box-sizing:border-box;background:#fff;border:1px solid #DCDEE3;border-bottom:0;border-radius:11.3px 11.3px 0 0;overflow:hidden;-webkit-mask-image:linear-gradient(#000 45%,transparent 100%);mask-image:linear-gradient(#000 45%,transparent 100%)}
+.ltrack{position:absolute;top:35.2px;left:50%;height:20px;display:flex;align-items:center;white-space:nowrap}
+.ltrack span{width:60px;flex:none;text-align:center;font-size:10px;line-height:1;letter-spacing:-.04em;color:#D1D3D8;font-weight:700;transition:color calc(400ms*var(--slow)) var(--ease-move),font-size calc(400ms*var(--slow)) var(--ease-move)}
+.ltrack span.on{color:#555D6D;font-size:20.3px}
+/* 6번 언어명 · 버튼 문구는 Figma에서 아웃라인한 벡터(5개 언어)를 인라인 SVG로 넣음 (글꼴 · 외부 파일 없이 그대로 그려짐). 색 · 크기 전환은 글자와 같게 currentColor · em 기준 */
+.lv{display:block;flex:none}.lv svg{display:block;width:100%;height:100%}
+.ltrack span{display:flex;justify-content:center;align-items:center;height:1em}
+.pbtn .ln>span{display:flex;justify-content:center;align-items:center;height:1.3em}
+.lv-ja{width:2.167em;height:0.739em}
+.lv-sc{width:3.005em;height:0.739em}
+.lv-tc{width:3.005em;height:0.739em}
+.lv-ko{width:2.414em;height:0.936em}
+.lv-en{width:3.399em;height:0.640em}
+.lv-pay-ja{width:2.748em;height:0.916em}
+.lv-pay-sc{width:1.985em;height:0.992em}
+.lv-pay-tc{width:1.985em;height:0.992em}
+.lv-pay-ko{width:3.359em;height:0.916em}
+.lv-pay-en{width:3.893em;height:0.916em}
+.pbtn{left:9.2px;top:182px;width:172.4px;height:38.5px;border-radius:999px;color:#fff;font-size:13.1px;font-weight:600;display:flex;align-items:center;justify-content:center;isolation:isolate}
+/* 버튼 뒤 푸른 글로우 (Figma: 125×26 알약, #217CF9 50%, 레이어 블러 40) → 버튼 배경은 ::after, 글로우는 그 뒤 ::before */
+.pbtn::before{content:"";position:absolute;left:23.7px;top:6.7px;width:125px;height:26px;border-radius:999px;background:var(--scr-blue);opacity:.5;filter:blur(20px);z-index:-2}
+.pbtn::after{content:"";position:absolute;inset:0;border-radius:inherit;background:var(--scr-blue);z-index:-1}
+.pbtn .ln{line-height:1.3}
+.dim{left:-17px;top:234px;width:224px;height:86px;background:linear-gradient(rgba(243,244,245,0),#F3F4F5);pointer-events:none}
+.done{left:129px;top:286px;width:55px;height:24px;border-radius:12px;background:#DEE3E9;color:#000;font-size:8.2px;font-weight:700;display:flex;align-items:center;justify-content:center}
+/* 7번: 버튼 3개 화면 정중앙(x 28), 134×34, 40px 간격 고정. Figma 원본은 x 34로 6px 치우쳐 있어 중앙으로 보정 */
+.pay7{left:28px;width:134px;height:34px;border-radius:999px}
+.b-g,.b-a{background:#fff} /* 이미지 자체는 흰색 80%라 뒤에 흰 배경을 깔아 PayPal과 같은 100%로 */
+.pp{overflow:hidden;background:#fff;z-index:2} /* 평소엔 나머지 두 버튼과 같이 그림자 없음, 들었을 때만 그림자 */
+.pp img{position:absolute;left:-20px;top:-12.4px;width:174px;height:68.7px}
+.hand{left:140px;top:205px;width:30px;height:30px;border-radius:50%;background:rgba(46,107,242,.2);box-shadow:0 0 0 1px rgba(46,107,242,.45) inset;pointer-events:none;z-index:3}
+/* 상단 당김 패널 (Figma 134:209): 화면 전체 #1577FE 12% + 배경 블러 4px, 26px 흰 원형 버튼 3개 (x 82 / y 97 · 147 · 197), 아이콘 12px #55678D */
+/* 블러가 한 번에 켜지지 않도록 블러 0 → 4px, 파란 막 0 → 12%를 0.6초 동안 감속 이징으로 서서히 */
+.pd-layer{z-index:30;visibility:hidden;pointer-events:none;transition:visibility 0s linear .6s}
+.pd-layer.open{visibility:visible;pointer-events:auto;transition:none}
+.pd-bg{left:0;top:0;width:190px;height:320px;background:rgba(21,119,254,0);-webkit-backdrop-filter:blur(0px);backdrop-filter:blur(0px);transition:background-color .6s cubic-bezier(0.16,1,0.3,1),-webkit-backdrop-filter .6s cubic-bezier(0.16,1,0.3,1),backdrop-filter .6s cubic-bezier(0.16,1,0.3,1)}
+.pd-layer.open .pd-bg{background:rgba(21,119,254,.12);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px)}
+.pdb{left:82px;width:26px;height:26px;padding:0;border:0;border-radius:50%;background:#fff;display:grid;place-items:center;cursor:pointer;opacity:0;transform:translateY(-10px);transition:transform .35s cubic-bezier(0.16,1,0.3,1),opacity .25s ease}
+.pdb svg{width:12px;height:12px;fill:#55678D;grid-area:1/1}
+.pd-layer.open .pdb{opacity:1;transform:none}
+.pd-layer.open .pdb[data-act="home"]{transition-delay:.12s}
+.pd-layer.open .pdb[data-act="lang"]{transition-delay:.16s}
+.pd-layer.open .pdb[data-act="back"]{transition-delay:.2s}
+.pd-layer.open .pdb[data-act="close"]{transition-delay:.24s}
+/* 언어 버튼: 비활성 = KR(흰 배경 · 회색 지구본) / 활성 = EN(#217CF9 배경 · 흰 지구본) */
+.pdb[data-act="lang"]{transition:transform .35s cubic-bezier(0.16,1,0.3,1),opacity .25s ease,background-color .25s ease}
+.pdb[data-act="lang"][aria-pressed="true"]{background:#217CF9}
+.pdb[data-act="lang"][aria-pressed="true"] svg{fill:#fff}
+/* 체험 끄기: 화면 전체가 0.6초 동안 검게 꺼짐 */
+.off-screen{position:absolute;inset:0;z-index:40;background:#000;opacity:0;pointer-events:none;transition:opacity .6s cubic-bezier(0.65,0,0.35,1)}
+.dev.is-off .off-screen{opacity:1;pointer-events:auto}
+.pd-layer.open .pdb:active{transform:scale(.92);transition-delay:0s}
+.ltrack.nojump span{transition:none!important}
+.done,.pbtn{pointer-events:auto;cursor:pointer}
+.dev.wait-tap{cursor:pointer}
+.dev{touch-action:none;-webkit-user-select:none;user-select:none}
+/* 8번 결제창 PayPal 버튼: Figma에서 7번과 같은 남색 PayPal 로고 벡터로 통일 (x 9, y 50, 169×26, 모서리 5, 로고 = 버튼 높이 32.35% 가운데) */
+/* 4번 흰색 목업 (Figma Mobile-white): 기기 136×274 · 모서리 19.9 · 흰색, 화면 126×265 · 모서리 14 (x 5, y 4), 영상 영역 126×254 (y 15) */
+.phone{position:absolute;left:28px;top:29px;width:136px;height:274px;border-radius:19.88px;background:#fff;box-shadow:.35px 1.39px 8.37px rgba(0,0,0,.35),inset -1.39px -3.14px 2.44px rgba(0,0,0,.19)}
+.ph-scr{position:absolute;left:5px;top:4px;width:126px;height:265px;border-radius:14px;overflow:hidden;background:#fff}
+/* 4번 목업 속 결제 프로토타입: 퍼즐 프로젝트 '스토리보드' 390×844 화면 6장(4배 1560×3376, 4K 키오스크 기준)을 폭 126에 맞춰 0.323배, 화면 상태바(47) 아래부터 y 11에 맞춤 */
+.ph-scr>img{position:absolute;left:0;top:-4.18px;width:126px;height:272.68px;clip-path:inset(15.18px 0 0 0)}
+.ph-scr>img.s2,.ph-scr>img.s3,.ph-scr>img.s5,.ph-scr>img.s6{opacity:0}
+.ph-scr>img.s3{clip-path:inset(15.18px 0 47.17px 0)}
+/* 2번에서 [한국] 탭 → 우측 결제수단 목록만 205px 스르륵 스크롤 (3번 화면 스크롤 위치와 같음), 좌측 탭 강조는 한국으로 */
+.p4-scroll{position:absolute;left:32.95px;top:104.05px;right:0;bottom:0;overflow:hidden;opacity:0;background:#fff}
+.p4-scroll .in{position:absolute;left:0;top:0;width:126px}
+/* 목록 전체(글로벌~인도네시아, Figma 260×724 @4x)를 한 장으로: 화면 x 116, y 349부터 */
+.p4-scroll img{position:absolute;left:4.52px;top:4.52px;width:84px;height:233.91px}
+.ph-scr>img.side{clip-path:inset(108.23px 93.05px 47.17px 0);opacity:0}
+/* 하단 CTA 시트 (화면 y 698~844): 3번 → 체크하면 4번 */
+.p4-sheet{position:absolute;left:0;top:221.33px;width:126px;height:47.17px;overflow:hidden;transform:translateY(47.17px)}
+.p4-sheet img{position:absolute;left:0;top:-225.51px;width:126px;height:272.68px}
+.p4-sheet img.s4{opacity:0}
+/* [결제하기] 버튼만 따로 떼어 눌림 모션 (원래 자리는 흰 바탕으로 가림). 버튼 = 화면 x 20~370, y 742~804 */
+.p4-btn{position:absolute;left:5.82px;top:13.57px;width:114.37px;height:21.32px;background:#fff}
+.p4-btn .in{position:absolute;left:0.65px;top:0.65px;width:113.08px;height:20.03px;overflow:hidden;border-radius:3.88px}
+.p4-sheet .p4-btn img{left:-6.46px;top:-239.72px}
+.p4-sb{position:absolute;left:-1px;top:-2px;width:128px;height:13px;background:#fff}
+/* 스켈레톤 (1번 화면): 상단 로고 줄 아래(화면 y 100~) 전부를 회색 블록으로 — 결제 금액, 간편결제 버튼, 탭, 카드 종류, 카드사 목록, 입력칸 + 지나가는 빛 */
+.p4-skel{position:absolute;left:0;top:28.12px;right:0;bottom:0;background:#fff;overflow:hidden;isolation:isolate}
+.p4-skel i{position:absolute;display:block;background:#EEF0F3}
+.p4-skel .sk-shine{display:none}
+/* 로딩 컴포넌트: 51 원 #E6E9FA 안에 6px 점 3개 #3C62DD 10 간격, 차례로 5px 튀어 오름 → 결제 성공에서 같은 원이 체크 아이콘 자리로 이동하며 체크가 그려짐 */
+.p4-load{position:absolute;width:16.48px;height:16.48px;border-radius:50%;background:#E6E9FA;opacity:0}
+.p4-load i{position:absolute;top:7.27px;width:1.94px;height:1.94px;border-radius:50%;background:#3C62DD}
+.p4-load i:nth-child(1){left:4.04px}.p4-load i:nth-child(2){left:7.27px}.p4-load i:nth-child(3){left:10.5px}
+/* 결제 성공 화면 + 체크 원 한 묶음 (같이 페이드, 화면 속 정지 체크가 비쳐 보이지 않게) */
+.p4-g6{position:absolute;inset:0;opacity:0}
+.p4-g6 img{position:absolute;left:0;top:-4.18px;width:126px;height:272.68px;clip-path:inset(15.18px 0 0 0)}
+.p4-g6 .p4-ok{opacity:1}
+.p4-load svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
+.p4-load path{fill:none;stroke:#3C62DD;stroke-width:3;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:32;stroke-dashoffset:32}
+.p4-hand{position:absolute;width:14px;height:14px;margin:-7px 0 0 -7px;border-radius:50%;background:rgba(46,107,242,.22);box-shadow:0 0 0 .6px rgba(46,107,242,.5) inset;opacity:0;pointer-events:none}
+/* 영상 마지막 로딩 화면에서 서서히 나타나 흰 화면만 남기는 막 */
+.ph-white{position:absolute;inset:0;background:#fff;opacity:0;pointer-events:none}
+.ph-spk{position:absolute;left:47.08px;top:3.84px;width:41.85px;height:9.07px;border-radius:0 0 10.46px 10.46px;background:#fff}
+.ph-spk i{position:absolute;left:10.81px;top:3.48px;width:18.83px;height:1.39px;border-radius:2.79px;background:#CFCFCF}
+.ph-spk b{position:absolute;left:31.03px;top:3.48px;width:1.39px;height:1.39px;border-radius:50%;background:#CFCFCF}
+.pp8{left:9px;top:50px;width:169px;height:26px;border-radius:5px;background:#fff;overflow:hidden}
+.fly{position:absolute;z-index:15;background:#fff;overflow:hidden}
+/* 로고만 잘라 보이는 창: 버튼 높이의 32.35%, Figma 로고 비율 40.9:11 고정 → 크기가 변해도 찌그러지지 않음 */
+.fly .lg,.pp8 .lg{position:absolute;left:50%;top:50%;height:32.35%;aspect-ratio:40.9/11;transform:translate(-50%,-50%);overflow:hidden}
+.fly .lg img,.pp8 .lg img{position:absolute;left:-162.8%;top:-217.3%;width:425.4%;height:auto;max-width:none}
+.fside{flex:1;min-width:0;display:grid;gap:14px;align-content:start}
+.now{font-size:15px;font-weight:600}
+.now small{display:block;font-weight:400;color:var(--muted);font-size:12px}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chips button{font:inherit;font-size:12px;padding:6px 10px;border-radius:999px;border:1px solid var(--line);background:transparent;color:var(--fg);cursor:pointer}
+.chips button.on{border-color:var(--accent);color:var(--accent)}
+.types{display:grid;gap:10px;margin:0;padding:0;list-style:none}
+.types li{font-size:13px;color:var(--muted)}
+.types b{color:var(--fg);display:block}
+.note{font-size:12px;color:var(--muted);border-top:1px solid var(--line);padding-top:10px}
+
+/* samples */
+.screen{position:relative;width:100%;border-radius:12px;overflow:hidden;background:var(--scr-bg);font-family:var(--f-scr);color:var(--scr-ink)}
+.stage{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:16px}
+.big{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:18px;display:grid;gap:10px}
+.big h2{font-size:15px;margin:0}
+.big .screen{height:180px}
+.big .t{margin:0;text-align:center;font-weight:700;font-size:clamp(22px,4.4vw,40px);line-height:1.35}
+.pts{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:20px}
+.pts .screen{height:200px}
+.tt{margin:0;font-size:20px;font-weight:700;line-height:1.45;text-align:center;color:#4A5468}
+.odo{display:inline-flex;font-size:48px;font-weight:700;line-height:1;color:#1A1C20;font-variant-numeric:tabular-nums}
+.odo-unit{font-size:13px}
+.sweep{background:linear-gradient(90deg,var(--scr-blue) 0 50%,#4A5468 50% 100%);background-size:200% 100%;background-position:100% 0;-webkit-background-clip:text;background-clip:text;color:transparent}
+.mark{position:relative;display:inline-block;isolation:isolate}
+.mark .bar{position:absolute;left:-2px;right:-2px;bottom:.08em;height:.38em;border-radius:3px;background:rgba(47,107,242,.22);z-index:-1;transform-origin:left center}
+.mini{display:flex;gap:10px}
+.mini img{width:58px;height:58px;border-radius:50%}
+.ease{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:18px;display:grid;gap:12px}
+.ease h2{font-size:15px;margin:0}
+.track{display:grid;grid-template-columns:minmax(0,190px) minmax(0,1fr);gap:12px;align-items:center}
+.track .name{font-size:13px}
+.track .name code{display:block;font-family:var(--f-mono);font-size:11px;color:var(--muted)}
+.rail{position:relative;height:28px;border-radius:14px;background:color-mix(in srgb,var(--line) 55%,transparent);min-width:0}
+.dot{position:absolute;left:4px;top:4px;width:20px;height:20px;border-radius:50%;background:var(--accent)}
+.rail.lin .dot{background:var(--muted)}
+@media (max-width:520px){.track{grid-template-columns:1fr}.replay{margin-left:0}}
+</style>
+
+<div class="wrap">
+  <header>
+    <h1>부스 터치 화면 모션 샘플</h1>
+    <p class="lede">Figma 화면의 위치·크기·에셋을 그대로 옮겨서 움직임을 붙인 샘플입니다. 속도를 느리게 하거나 linear와 비교하면 이징 차이가 잘 보입니다.</p>
+  </header>
+
+  <div class="bar" role="group" aria-label="재생 설정">
+    <div class="grp"><span class="lbl">속도</span>
+      <div class="seg" id="speed">
+        <button type="button" data-v="1" aria-pressed="true">1x</button>
+        <button type="button" data-v="2" aria-pressed="false">0.5x</button>
+        <button type="button" data-v="4" aria-pressed="false">0.25x</button>
+      </div>
+    </div>
+    <div class="grp"><span class="lbl">이징</span>
+      <div class="seg" id="easing">
+        <button type="button" data-v="ease" aria-pressed="true">이징 적용</button>
+        <button type="button" data-v="linear" aria-pressed="false">linear로 비교</button>
+      </div>
+    </div>
+    <div class="grp"><span class="lbl">텍스트 리빌</span>
+      <div class="seg" id="mode">
+        <button type="button" data-v="char" aria-pressed="true">글자 단위</button>
+        <button type="button" data-v="blur" aria-pressed="false">블러 단어</button>
+        <button type="button" data-v="spring" aria-pressed="false">스프링 단어</button>
+        <button type="button" data-v="zoom" aria-pressed="false">줌 블러</button>
+        <button type="button" data-v="line" aria-pressed="false">줄 단위</button>
+        <button type="button" data-v="combo" aria-pressed="false">블러+스프링+줌</button>
+      </div>
+    </div>
+    <label class="chk"><input type="checkbox" id="debug"> 텍스트 마스크 영역 보기</label>
+    <button type="button" class="replay" id="replay">처음부터 다시</button>
+  </div>
+
+  <section class="flowsec" aria-label="화면 전환 흐름">
+    <h2>화면 전환 흐름 (1 → 8 → 1)</h2>
+    <p>실제 키오스크와 같은 규칙으로 넘어갑니다. 3 → 4, 4번(목업 속 영상이 끝나면, 데모는 5초 가정), 7번(PayPal을 옮기고 나면 결제창으로 공유 요소 전환)은 자동으로 넘어가고, 1 · 2 · 5 · 6번은 화면을 터치해야, 8번은 [체험 완료]를 눌러야 다음으로 갑니다(기다리는 동안 1번 슬라이드 · 6번 언어 롤링은 반복). 오른쪽 전환 버튼을 누르면 그 구간을 바로 재생합니다.</p>
+    <div class="flowwrap">
+      <div class="dev" id="dev" role="img" aria-label="부스 화면 전체 흐름 미리보기">
+        <div class="fs" data-s="1"><div class="cv">
+          <h3 class="t" style="top:30px;font-size:16px;line-height:22.4px"><span class="ln"><span>해외 고객</span></span><span class="ln"><span>익숙한 결제</span></span><span class="ln"><span>그대로</span></span></h3>
+          <div class="ph1"><div class="strip"></div></div>        </div></div>
+
+        <div class="fs" data-s="2"><div class="cv">
+          <h3 class="t" style="top:30px;font-size:14px;line-height:19.6px"><span class="ln"><span>해외 고객의 구매</span></span><span class="ln"><span>결제가 가로막는다면?</span></span><span class="ln" style="display:none"><span></span></span></h3>
+          <div class="mask2">
+            <img class="cd" src="assets/card1.png" alt="" style="top:0;height:46.2px">
+            <img class="cd" src="assets/card2.png" alt="" style="top:58px;height:49.9px">
+            <img class="cd" src="assets/card3.png" alt="" style="top:119.7px;height:46.2px">
+            <img class="cd" src="assets/card4.png" alt="" style="top:177.7px;height:46.2px">
+          </div>
+        </div></div>
+
+        <div class="fs" data-s="3"><div class="cv">
+          <p class="sub" style="left:-17.9px;top:102px;width:224.4px;line-height:17.45px"><span class="ln"><span>전 세계 모든 결제 수단 통합 제공</span></span></p>
+          <h3 class="t" style="left:-17.9px;top:127px;font-size:16px;line-height:22.4px"><span class="ln"><span>글로벌 고객을 위한</span></span><span class="ln"><span>결제 플랫폼</span></span><span class="ln"><span>페이버스</span></span></h3>
+          <div class="phone"><div class="ph-scr"><img class="s1" src="assets/sb1.png" alt=""><img class="s2" src="assets/sb2.png" alt=""><div class="p4-scroll"><div class="in"><img src="assets/sb-list.png" alt=""></div></div><img class="side" src="assets/sb3.png" alt=""><img class="s3" src="assets/sb3.png" alt=""><div class="p4-sheet"><img class="s3" src="assets/sb3.png" alt=""><img class="s4" src="assets/sb4.png" alt=""><div class="p4-btn"><div class="in"><img src="assets/sb4.png" alt=""></div></div></div><div class="p4-skel"><i style="left:0px;top:18.42px;width:126px;height:40.71px;border-radius:0px;background:#F5F5F6;z-index:-1"></i><i style="left:0px;top:108.88px;width:126px;height:4.52px;border-radius:0px;background:#EEEFF1;z-index:-1"></i><i style="left:6.46px;top:4.85px;width:23.26px;height:5.17px;border-radius:1.29px"></i><i style="left:93.69px;top:4.85px;width:25.85px;height:5.17px;border-radius:1.29px"></i><i style="left:6.78px;top:21.97px;width:112.43px;height:15.18px;border-radius:2.58px;background:#E6E8EB"></i><i style="left:6.78px;top:40.06px;width:55.25px;height:15.18px;border-radius:2.58px;background:#E6E8EB"></i><i style="left:63.97px;top:40.06px;width:55.25px;height:15.18px;border-radius:2.58px;background:#E6E8EB"></i><i style="left:16.15px;top:66.55px;width:16.15px;height:4.52px;border-radius:1.29px"></i><i style="left:54.92px;top:66.55px;width:16.15px;height:4.52px;border-radius:1.29px"></i><i style="left:93.69px;top:66.55px;width:16.15px;height:4.52px;border-radius:1.29px"></i><i style="left:6.78px;top:82.71px;width:54.28px;height:19.38px;border-radius:2.58px"></i><i style="left:64.94px;top:82.71px;width:54.28px;height:19.38px;border-radius:2.58px"></i><i style="left:6.78px;top:120.18px;width:36.18px;height:19.38px;border-radius:2.58px"></i><i style="left:44.91px;top:120.18px;width:36.18px;height:19.38px;border-radius:2.58px"></i><i style="left:83.03px;top:120.18px;width:36.18px;height:19.38px;border-radius:2.58px"></i><i style="left:6.78px;top:142.8px;width:36.18px;height:19.38px;border-radius:2.58px"></i><i style="left:44.91px;top:142.8px;width:36.18px;height:19.38px;border-radius:2.58px"></i><i style="left:83.03px;top:142.8px;width:36.18px;height:19.38px;border-radius:2.58px"></i><i style="left:6.78px;top:165.42px;width:36.18px;height:19.38px;border-radius:2.58px"></i><i style="left:44.91px;top:165.42px;width:36.18px;height:19.38px;border-radius:2.58px"></i><i style="left:83.03px;top:165.42px;width:36.18px;height:19.38px;border-radius:2.58px"></i><i style="left:6.78px;top:190.62px;width:112.43px;height:15.18px;border-radius:2.58px"></i><i style="left:6.78px;top:211.94px;width:112.43px;height:15.18px;border-radius:2.58px"></i><i class="sk-shine"></i></div><img class="s5" src="assets/sb5.png" alt=""><div class="p4-load"><i></i><i></i><i></i></div><div class="p4-g6"><img src="assets/sb6.png" alt=""><div class="p4-load p4-ok"><svg viewBox="0 0 51 51"><path d="M15.5 24 L23 31.5 L36 17.5"/></svg></div></div><div class="p4-sb"></div><div class="p4-hand"></div><div class="ph-white"></div></div><div class="ph-spk"><i></i><b></b></div></div>
+        </div></div>
+
+        <div class="fs" data-s="5"><div class="cv">
+          <h3 class="t" style="left:-16.5px;top:30px;font-size:14px;line-height:19.6px"><span class="ln"><span>원하는</span></span><span class="ln"><span>결제 수단으로 결제</span></span></h3>
+          <div class="num" data-n="140"><svg class="plus" viewBox="0 0 20 20" aria-hidden="true"><defs><linearGradient id="plusGrad" x1="9.99" y1="-12.715" x2="9.99" y2="25.709" gradientUnits="userSpaceOnUse"><stop stop-color="#1577FE"/><stop offset="1" stop-color="#7EA9FF"/></linearGradient></defs><path d="M20 12.6079H0V7.39212H20V12.6079ZM7.3193 0H12.6807V20H7.3193V0Z" fill="url(#plusGrad)"/></svg></div>
+          <div class="unit"><span>여 개 이상의 로컬 Pay</span></div>
+          <img class="bb" src="assets/zalo.png" alt="" style="left:63.6px;top:93px;width:60.7px;height:60.7px">
+          <img class="bb" src="assets/zalo.png" alt="" style="left:32.2px;top:145px;width:60.7px;height:60.7px">
+          <img class="bb" src="assets/zalo.png" alt="" style="left:93.6px;top:146px;width:60.7px;height:60.7px">
+          <img class="bb" src="assets/apple.png" alt="" style="left:-10.7px;top:185px;width:85.8px;height:85.8px">
+          <img class="bb" src="assets/shopee.png" alt="" style="left:112.2px;top:187.3px;width:82.9px;height:82.9px">
+          <img class="bb" src="assets/alipay.png" alt="" style="left:62.5px;top:197.5px;width:60.7px;height:60.7px">
+          <img class="bb" src="assets/google.png" alt="" style="left:22.5px;top:241px;width:80.1px;height:80.1px">
+          <img class="bb" src="assets/paypal.png" alt="" style="left:86.1px;top:243.9px;width:74.3px;height:74.3px">
+          <img class="bb" src="assets/wechat.png" alt="" style="left:-28.4px;top:250.7px;width:60.7px;height:60.7px">
+          <img class="bb" src="assets/dana.png" alt="" style="left:153.5px;top:250.7px;width:60.7px;height:60.7px">
+        </div></div>
+
+        <div class="fs" data-s="6"><div class="cv">
+          <h3 class="t" style="left:-16.5px;top:30px;font-size:14px;line-height:19.6px"><span class="ln"><span>익숙한</span></span><span class="ln"><span>언어로 결제</span></span></h3>
+          <div class="lang"><div class="ltrack"><span><i class="lv lv-tc" role="img" aria-label="繁體中文"></i></span><span><i class="lv lv-ko" role="img" aria-label="한국어"></i></span><span><i class="lv lv-en" role="img" aria-label="ENGLISH"></i></span><span><i class="lv lv-ja" role="img" aria-label="日本語"></i></span><span><i class="lv lv-sc" role="img" aria-label="简体中文"></i></span><span><i class="lv lv-tc" role="img" aria-label="繁體中文"></i></span><span><i class="lv lv-ko" role="img" aria-label="한국어"></i></span><span><i class="lv lv-en" role="img" aria-label="ENGLISH"></i></span><span><i class="lv lv-ja" role="img" aria-label="日本語"></i></span><span><i class="lv lv-sc" role="img" aria-label="简体中文"></i></span><span><i class="lv lv-tc" role="img" aria-label="繁體中文"></i></span></div></div>
+          <div class="pbtn"><span class="ln"><span>결제하기</span></span></div>
+          <p class="foot" style="left:-17px;top:270px;width:224px;line-height:10px;white-space:nowrap"><span class="ln"><span>글로벌 고객에게</span></span><span class="ln"><span>익숙한 언어 사용으로 결제 이탈률을 줄이세요</span></span></p>
+        </div></div>
+
+        <div class="fs" data-s="7"><div class="cv">
+          <h3 class="t" style="top:30px;font-size:14px;line-height:19.6px"><span class="ln"><span>고객들의 결제 여정을</span></span><span class="ln"><span>직접 최적화해보세요</span></span></h3>
+          <img class="b-g pay7" src="assets/gpay.png" alt="" style="top:108px">
+          <img class="b-a pay7" src="assets/apay.png" alt="" style="top:148px">
+          <div class="pp pay7" style="top:188px"><img src="assets/pp.png" alt=""></div>
+          <div class="dim"></div>
+          <div class="hand"></div>
+          <p class="foot" style="left:-17px;top:268px;width:224.4px;line-height:18px"><span class="ln"><span>내 고객들이 자주 사용하는 결제수단을 가장 위로</span></span><span class="ln" style="display:none"><span></span></span></p>
+        </div></div>
+
+        <div class="fs s8" data-s="8"><div class="cv">
+          <img class="pw" src="assets/pw.png" alt="" style="left:1px;top:12px;width:187px;height:296px">
+          <div class="pp8"><div class="lg"><img src="assets/pp.png" alt=""></div></div>
+          <div class="done">체험 완료</div>
+        </div></div>
+        <div class="cv pd-layer" aria-hidden="true"><div class="pd-bg"></div>
+          <button type="button" class="pdb" data-act="home" style="top:90px" aria-label="처음으로"><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M5.70214 0.774414C8.62049 0.774414 11 3.10368 11 5.99941C11 8.89516 8.62049 11.2244 5.70214 11.2244C3.23729 11.2244 1.16049 9.56751 0.569583 7.30866C0.485717 6.98811 0.677618 6.66021 0.998198 6.57636C1.31878 6.49251 1.64665 6.68441 1.73051 7.00496C2.18358 8.73691 3.78421 10.0244 5.70214 10.0244C7.97549 10.0244 9.80004 8.21481 9.80004 5.99941C9.80004 3.78404 7.97549 1.97441 5.70214 1.97441C4.30429 1.97441 3.07667 2.65776 2.336 3.69971H3.5751C3.90647 3.69971 4.1751 3.96834 4.1751 4.29971C4.1751 4.63108 3.90647 4.89971 3.5751 4.89971H1.0751C0.743728 4.89971 0.475098 4.63108 0.475098 4.29971V1.79971C0.475098 1.46834 0.743728 1.19971 1.0751 1.19971C1.40647 1.19971 1.6751 1.46834 1.6751 1.79971V2.60155C2.6478 1.48216 4.08998 0.774414 5.70214 0.774414Z"/></svg></button>
+          <button type="button" class="pdb" data-act="lang" style="top:128px" aria-pressed="false" aria-label="영어로 보기"><svg viewBox="0 0 12 12" aria-hidden="true"><path fill-rule="evenodd" clip-rule="evenodd" d="M6 0.5C2.96386 0.5 0.5 2.96386 0.5 6C0.5 9.0358 2.95853 11.5 6 11.5C9.03615 11.5 11.5 9.03615 11.5 6C11.5 2.96386 9.03615 0.5 6 0.5ZM10.4725 5.5C10.2952 3.89939 9.27735 2.55093 7.87055 1.90651C7.93225 2.01979 7.9905 2.13778 8.0454 2.25965C8.4363 3.12738 8.68605 4.25989 8.7393 5.5H10.4725ZM8.7393 6.5H10.4725C10.2952 8.1006 9.27735 9.44905 7.87055 10.0935C7.93225 9.9802 7.9905 9.8622 8.0454 9.74035C8.4363 8.87265 8.68605 7.7401 8.7393 6.5ZM7.7383 5.5C7.68565 4.37948 7.4586 3.3917 7.13365 2.67035C6.94715 2.25634 6.7382 1.95174 6.5315 1.75726C6.3274 1.5652 6.14865 1.5 6 1.5C5.85135 1.5 5.6726 1.5652 5.4685 1.75726C5.2618 1.95174 5.05285 2.25634 4.86635 2.67035C4.54142 3.3917 4.31435 4.37948 4.26168 5.5H7.7383ZM4.26168 6.5H7.7383C7.68565 7.6205 7.4586 8.6083 7.13365 9.32965C6.94715 9.74365 6.7382 10.0483 6.5315 10.2428C6.3274 10.4348 6.14865 10.5 6 10.5C5.85135 10.5 5.6726 10.4348 5.4685 10.2428C5.2618 10.0483 5.05285 9.74365 4.86635 9.32965C4.54142 8.6083 4.31435 7.6205 4.26168 6.5ZM3.26068 5.5C3.31393 4.25989 3.56371 3.12738 3.95458 2.25965C4.00947 2.13778 4.06775 2.01979 4.12943 1.90651C2.72268 2.55093 1.70474 3.89939 1.52751 5.5H3.26068ZM1.52744 6.5H3.26068C3.31393 7.7401 3.56371 8.87265 3.95458 9.74035C4.00969 9.8627 4.06821 9.9811 4.13014 10.0948C2.72151 9.4509 1.70438 8.1018 1.52744 6.5Z"/></svg></button>
+          <button type="button" class="pdb" data-act="back" style="top:166px" aria-label="이전 화면으로"><svg viewBox="0 0 12 12" aria-hidden="true"><path fill-rule="evenodd" clip-rule="evenodd" d="M1 3.84941C1 3.92941 1.015 4.00941 1.045 4.07941C1.07 4.13941 1.11 4.19441 1.155 4.23941C1.165 4.24941 1.165 4.26441 1.175 4.26941L3.425 6.51941C3.66 6.75441 4.04 6.75441 4.275 6.51941C4.51 6.28441 4.51 5.90441 4.275 5.66941L3.05 4.44441H7.225C8.755 4.44441 10 5.68941 10 7.21941C10 8.74941 8.755 9.99441 7.225 9.99441H4.415C4.085 9.99441 3.815 10.2644 3.815 10.5944C3.815 10.9244 4.085 11.1944 4.415 11.1944H7.225C9.42 11.1944 11.2 9.41441 11.2 7.21941C11.2 5.02441 9.42 3.24441 7.225 3.24441H3.05L4.275 2.01941C4.51 1.78441 4.51 1.40441 4.275 1.16941C4.04 0.934414 3.66 0.934414 3.425 1.16941L1.175 3.42441C1.175 3.42441 1.16 3.44441 1.155 3.45441C1.11 3.50441 1.075 3.55441 1.045 3.61441C1.015 3.68941 1 3.76441 1 3.84441V3.84941Z"/></svg></button>
+          <button type="button" class="pdb" data-act="close" style="top:204px" aria-label="체험 끄기"><svg viewBox="0 0 12 12" aria-hidden="true"><path fill-rule="evenodd" clip-rule="evenodd" d="M1.67527 10.5262C1.91027 10.7612 2.29027 10.7612 2.52527 10.5262L6.10025 6.95122L9.67525 10.5262C9.91025 10.7612 10.2902 10.7612 10.5252 10.5262C10.7602 10.2912 10.7602 9.91122 10.5252 9.67622L6.95025 6.10122L10.5252 2.52625C10.7602 2.29125 10.7602 1.91125 10.5252 1.67625C10.2902 1.44125 9.91025 1.44125 9.67525 1.67625L6.10025 5.25122L2.52527 1.67625C2.29027 1.44125 1.91027 1.44125 1.67527 1.67625C1.44027 1.91125 1.44027 2.29125 1.67527 2.52625L5.25025 6.10122L1.67527 9.67622C1.44027 9.91122 1.44027 10.2912 1.67527 10.5262Z"/></svg></button>
+        </div>
+        <div class="off-screen"></div>
+        <div class="ov ov-white" style="position:absolute;inset:0;background:#fff;opacity:0;pointer-events:none;z-index:20"></div>
+      </div>
+      <button type="button" class="fsclose" id="fsclose" aria-label="전체화면 닫기">×</button>
+      <div class="fside">
+        <button type="button" class="fsbtn" id="fsbtn">전체화면으로 보기</button>
+        <div class="now" id="now">1 인트로</div>
+        <div class="chips" id="chips"></div>
+        <ul class="types">
+          <li><b>심리스 트랜지션</b>화면은 그대로 두고 텍스트만 그 자리에서 바뀝니다. 앞 문구는 아래로 빠지며 사라지고, 새 문구가 같은 방향으로 위에서 내려오며 리빌됩니다. 이미지·버튼 같은 나머지 요소는 살짝 아래로 빠지고 새 요소가 위에서 내려옵니다.</li>
+          <li><b>줌인 트랜지션</b>폰 목업을 향해 렌즈가 들어가듯 점점 빨라지며 확대되고 흐려집니다. 다음 화면은 같은 지점에서 살짝 작은 상태로 겹쳐 나타나 계속 다가오듯 커지며 제자리에 멈춥니다.</li>
+          <li><b>공유 요소 전환</b>7번에서 맨 위로 올린 PayPal 버튼이 그대로 날아가 8번 결제창의 PayPal 자리에 안착합니다.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section class="big" aria-label="큰 글씨 리빌">
+    <h2>큰 글씨로 보기</h2>
+    <div class="screen" data-demo="big"><div class="stage">
+      <h3 class="t"><span class="ln"><span>글로벌 고객을 위한</span></span><span class="ln"><span>결제 플랫폼 페이버스</span></span></h3>
+    </div></div>
+  </section>
+
+  <section aria-label="포인트 모션" style="display:grid;gap:12px">
+    <h2 style="font-size:15px;margin:0">포인트 모션 옵션</h2>
+    <div class="pts">
+      <article class="card">
+        <div><span class="no">A</span><h2>숫자 롤링</h2></div>
+        <div class="screen" data-demo="odo"><div class="stage">
+          <div class="odo" data-n="140"></div><div class="odo-unit">여 개 이상의 로컬 Pay</div>
+        </div></div>
+        <p>자릿수마다 숫자가 위에서 아래로 굴러가다 멈춤. 5번 "140+"에 적용.</p>
+      </article>
+      <article class="card">
+        <div><span class="no">B</span><h2>키워드 컬러 스윕</h2></div>
+        <div class="screen" data-demo="sweep"><div class="stage">
+          <h3 class="tt"><span class="ln"><span>글로벌 고객을 위한</span></span><span class="ln"><span>결제 플랫폼 <span class="sweep">페이버스</span></span></span></h3>
+        </div></div>
+        <p>문장이 나타난 뒤 핵심 단어만 왼쪽부터 브랜드 컬러로 채워짐.</p>
+      </article>
+      <article class="card">
+        <div><span class="no">C</span><h2>형광펜 밑줄</h2></div>
+        <div class="screen" data-demo="mark"><div class="stage">
+          <h3 class="tt"><span class="ln"><span><span class="mark">익숙한 언어<span class="bar"></span></span>로</span></span><span class="ln"><span>결제하세요</span></span></h3>
+        </div></div>
+        <p>문장이 나타난 뒤 키워드 아래로 형광펜이 왼쪽부터 그어짐.</p>
+      </article>
+      <article class="card">
+        <div><span class="no">D</span><h2>스프링 팝</h2></div>
+        <div class="screen" data-demo="pop"><div class="stage">
+          <div class="mini"><img src="assets/paypal.png" alt=""><img src="assets/google.png" alt=""><img src="assets/alipay.png" alt=""><img src="assets/dana.png" alt=""></div>
+        </div></div>
+        <p>아이콘이 살짝 작게 떨어져서 통통 튀며 자리 잡음.</p>
+      </article>
+    </div>
+  </section>
+
+  <section class="ease" aria-label="이징 곡선 비교">
+    <h2>이징 3종 비교 (같은 700ms)</h2>
+    <div class="track"><div class="name">등장 이징<code>cubic-bezier(0.22, 1, 0.36, 1)</code></div><div class="rail" data-k="in"><div class="dot"></div></div></div>
+    <div class="track"><div class="name">이동 이징<code>cubic-bezier(0.65, 0, 0.35, 1)</code></div><div class="rail" data-k="move"><div class="dot"></div></div></div>
+    <div class="track"><div class="name">linear (사용 안 함)<code>linear</code></div><div class="rail lin" data-k="linear"><div class="dot"></div></div></div>
+  </section>
+</div>
+
+<script>
+const S={slow:1,linear:false};
+const EZ={in:'cubic-bezier(0.22, 1, 0.36, 1)',move:'cubic-bezier(0.65, 0, 0.35, 1)',out:'cubic-bezier(0.55, 0, 1, 0.45)',spring:'cubic-bezier(0.34, 1.56, 0.64, 1)',accel:'cubic-bezier(0.7, 0, 0.84, 0)',decel:'cubic-bezier(0.16, 1, 0.3, 1)'};
+const ez=k=>S.linear?'linear':EZ[k];
+const BASE=0.8; // 전체 속도: 원래 타이밍의 0.8배 (빛 흐름 제외)
+const t=ms=>ms*S.slow*BASE;
+// 일시정지(상단 당김 패널)를 존중하는 타이머: PAUSED 동안은 시간이 흐르지 않음
+let PAUSED=false;
+const sleepRaw=ms=>new Promise(r=>{let left=ms,last=performance.now();const step=()=>{const now=performance.now();if(!PAUSED)left-=now-last;last=now;if(left<=0)r();else setTimeout(step,Math.min(left,40));};setTimeout(step,Math.min(Math.max(left,0),40));});
+const wait=ms=>sleepRaw(t(ms));
+function A(el,kf,dur,delay=0,k='in'){return el.animate(kf,{duration:t(dur),delay:t(delay),easing:ez(k),fill:'both'});}
+const HIDE=(el)=>A(el,[{opacity:0},{opacity:0}],1);
+const REV=[{transform:'translateY(-100%)',opacity:0},{transform:'translateY(0)',opacity:1}];
+const DROP=[{transform:'translateY(-24px)',opacity:0},{transform:'translateY(0)',opacity:1}];
+
+/* ---------- text reveal ---------- */
+let MODE='char';
+const TEXT_SEL='.t .ln>span, .sub .ln>span, .foot .ln>span';
+function el_(cls,txt){const s=document.createElement('span');if(cls)s.className=cls;if(txt!==undefined)s.textContent=txt;return s;}
+function buildText(){
+  ['blur','spring','zoom','combo'].forEach(m=>document.body.classList.toggle('mode-'+m,MODE===m));
+  document.querySelectorAll(TEXT_SEL).forEach(span=>{
+    if(span.dataset.txt===undefined)span.dataset.txt=span.textContent;
+    const txt=span.dataset.txt;span.textContent='';span.classList.remove('gl');span.style.backgroundSize='';
+    if(MODE==='line'||MODE==='zoom'){span.textContent=txt;return;}
+    if(MODE==='blur'||MODE==='spring'||MODE==='combo'){txt.split(' ').forEach((w,i)=>{if(i)span.appendChild(el_('sp',' '));span.appendChild(el_('wd',w));});return;}
+    for(const c of txt){if(c===' '){span.appendChild(el_('sp',' '));continue;}const w=el_('ch');w.appendChild(el_('',c));span.appendChild(w);}
+  });
+}
+function leavesOf(h){return MODE==='char'?h.querySelectorAll('.ch>span'):(MODE==='blur'||MODE==='spring'||MODE==='combo')?h.querySelectorAll('.wd'):h.querySelectorAll('.ln>span');}
+/* gradient title: every leaf shares one gradient tile, offset by its position inside the title, so the glow band reads as one sweep */
+function glow(root,sel){
+  if(sel!=='.t')return;
+  root.querySelectorAll('.t').forEach(h=>{
+    const hr=h.getBoundingClientRect(),W=h.offsetWidth,H=h.offsetHeight,kl=hr.width/W||1;
+    leavesOf(h).forEach(l=>{const lr=l.getBoundingClientRect(),x=(lr.left-hr.left)/kl,y=(lr.top-hr.top)/kl;
+      l.classList.add('gl');l.style.backgroundSize=`${2*W}px ${H}px, ${W}px ${H}px`;
+      const p=b=>`${b-W-x}px ${-y}px, ${-x}px ${-y}px`;
+      l.animate([{backgroundPosition:p(-0.4*W),offset:0,easing:ez('move')},{backgroundPosition:p(1.4*W),offset:5/7},{backgroundPosition:p(1.4*W),offset:1}],{duration:7000*S.slow,iterations:Infinity});
+    });
+  });
+}
+function revealLines(root,sel,delay=0){const ls=root.querySelectorAll(sel+' .ln > span');ls.forEach((s,i)=>A(s,REV,700,delay+i*100));return delay+(ls.length-1)*100+700;}
+function reveal(root,sel,delay=0){
+  // 작은 글씨(서브·푸터)는 리빌 모드와 무관하게 담백한 페이드업만
+  if(sel!=='.t'){root.querySelectorAll(sel).forEach(s=>A(s,[{opacity:0,transform:'translateY(4px)'},{opacity:1,transform:'translateY(0)'}],600,delay,'decel'));return delay+600;}
+  glow(root,sel);
+  if(MODE==='line')return revealLines(root,sel,delay);
+  if(MODE==='char'){const cs=root.querySelectorAll(sel+' .ch > span');cs.forEach((c,i)=>A(c,REV,600,delay+i*35));return delay+Math.max(cs.length-1,0)*35+600;}
+  if(MODE==='zoom'){const ls=root.querySelectorAll(sel+' .ln > span');ls.forEach((s,i)=>A(s,[{opacity:0,filter:'blur(12px)',transform:'scale(1.12)'},{opacity:1,filter:'blur(0px)',transform:'scale(1)'}],900,delay+i*120));return delay+(ls.length-1)*120+900;}
+  const ws=root.querySelectorAll(sel+' .wd');
+  // 블러+스프링+줌: 크기·위치는 스프링(오버슈트), 블러·투명도는 감속으로 분리해 블러가 튀지 않게
+  if(MODE==='combo'){ws.forEach((w,i)=>{const d=delay+i*80;
+    A(w,[{transform:'translateY(-0.4em) scale(.6)'},{transform:'translateY(0) scale(1)'}],800,d,'spring');
+    A(w,[{opacity:0,filter:'blur(10px)'},{opacity:1,filter:'blur(0px)'}],600,d,'decel');});
+    return delay+Math.max(ws.length-1,0)*80+800;}
+  if(MODE==='blur'){ws.forEach((w,i)=>A(w,[{opacity:0,filter:'blur(10px)',transform:'translateY(-12px)'},{opacity:1,filter:'blur(0px)',transform:'translateY(0)'}],700,delay+i*80));return delay+Math.max(ws.length-1,0)*80+700;}
+  ws.forEach((w,i)=>A(w,[{opacity:0,transform:'translateY(-0.7em)'},{opacity:1,transform:'translateY(0)'}],650,delay+i*70,'spring'));return delay+Math.max(ws.length-1,0)*70+650;
+}
+/* odometer columns: target digit on top, rolls downward into place */
+function buildOdo(o){const plus=o.querySelector('.plus');
+  for(const ch of o.dataset.n){const d=+ch,col=el_('col'),inner=el_('');
+    for(let k=0;k<16;k++){const i=document.createElement('i');i.textContent=(d-k+20)%10;inner.appendChild(i);}
+    col.appendChild(inner);o.insertBefore(col,plus);}
+}
+document.querySelectorAll('.odo,.num').forEach(buildOdo);
+function rollOdo(o,delay=0){const cols=[...o.querySelectorAll('.col>span')],k=o.classList.contains('num')?2.2:1;cols.forEach((c,i)=>A(c,[{transform:`translateY(${-15*k}em)`},{transform:'translateY(0)'}],1400,delay+i*120,'in'));return delay+(cols.length-1)*120+1400;}
+
+/* ---------- sample cards ---------- */
+const scenes={
+  async big(el){const end=reveal(el,'.t');await wait(end+800);},
+  async odo(el){const end=rollOdo(el.querySelector('.odo'));A(el.querySelector('.odo-unit'),DROP,600,700);await wait(end+1000);},
+  async sweep(el){const end=revealLines(el,'.tt');A(el.querySelector('.sweep'),[{backgroundPosition:'100% 0'},{backgroundPosition:'0% 0'}],900,end,'move');await wait(end+1500);},
+  async mark(el){const end=revealLines(el,'.tt');A(el.querySelector('.bar'),[{transform:'scaleX(0)'},{transform:'scaleX(1)'}],600,end-200,'in');await wait(end+1200);},
+  async pop(el){[...el.querySelectorAll('.mini img')].forEach((c,i)=>A(c,[{opacity:0,transform:'translateY(-16px) scale(.85)'},{opacity:1,transform:'translateY(0) scale(1)'}],650,i*90,'spring'));await wait(1600);}
+};
+class Demo{
+  constructor(el){this.el=el;this.stage=el.querySelector('.stage');this.fn=scenes[el.dataset.demo];this.gen=0;}
+  reset(){this.el.getAnimations({subtree:true}).forEach(a=>a.cancel());}
+  async play(){const g=++this.gen,alive=()=>g===this.gen;this.reset();
+    while(alive()){await this.fn(this.el,alive);if(!alive())return;await wait(1200);if(!alive())return;
+      await A(this.stage,[{opacity:1},{opacity:0}],300,0,'out').finished.catch(()=>{});if(!alive())return;this.reset();}}
+}
+const demos=[...document.querySelectorAll('[data-demo]')].map(el=>new Demo(el));
+
+/* ---------- full flow player (Figma 190×320 coordinates) ---------- */
+const dev=document.getElementById('dev'),nowEl=document.getElementById('now'),chipsEl=document.getElementById('chips'),white=dev.querySelector('.ov-white');
+const setK=()=>dev.style.setProperty('--k',dev.clientWidth/190);setK();
+if('ResizeObserver' in window)new ResizeObserver(setK).observe(dev);
+const SC={};dev.querySelectorAll('.fs').forEach(e=>SC[e.dataset.s]=e);
+const q=(k,s)=>SC[k].querySelector(s);
+const NAMES={1:'1 인트로',2:'2 문제 제기',3:'3·4 솔루션 → 제품',5:'5 결제 수단',6:'6 언어',7:'7 체험 시작',8:'8 결과 결제창'};
+// 언어는 일본어 · 한국어 · 영어 3개만, 트랙에 반복 배치해 한국어 → 영어 → 일본어 → … 순환
+// 5개 언어 순환: 한국어 → English → 日本語 → 简体中文 → 繁體中文 → 한국어 … (트랙 0번 칸은 繁體中文, 1번 칸부터 한국어)
+const LANG_N=5,LANGS=Array.from({length:11},(_,i)=>['付款','결제하기','Pay now','支払う','付款'][i%5]);
+const LW=60;
+const ENTER={
+  // 결제 장면 슬라이드 카드: 카드는 살짝 아래·작게에서 떠오름 → 안쪽 장면 10개가 가로로 넘어가며 무한 반복 (장면당 1.2초, 그중 0.26초 이동)
+  async 1(el){const end=reveal(el,'.t');
+    A(el.querySelector('.ph1'),[{opacity:0,transform:'translateY(18px) scale(.94)'},{opacity:1,transform:'translateY(0) scale(1)'}],900,300,'decel');
+    const kf=[];for(let i=0;i<10;i++){const x=`translateX(${-160*i}px)`;kf.push({transform:x,offset:i/10},{transform:x,offset:(i+.78)/10,easing:ez('move')});}
+    kf.push({transform:'translateX(-1600px)',offset:1});
+    el.querySelector('.strip').animate(kf,{duration:t(12000),delay:t(1000),iterations:Infinity});
+    await wait(Math.max(end,1900));},
+  async 2(el,alive){
+    const end=reveal(el,'.t');const cs=[...el.querySelectorAll('.cd')],Y=[0,58,119.7,177.7];cs.forEach(HIDE);
+    await wait(end-200);
+    // 레퍼런스(페이버스 홈 CUSTOMERS'): 한 칸씩 올라가며 이전 카드는 작아지고 흐려지며 뒤로 물러남
+    // 가장 선명한 카드(d=0)는 타이틀 아래 남은 영역의 세로 중앙, 다음 카드(d=-1)는 아래에서 대기
+    const F=72,P=d=>d>=0?F-60*d:F-64*d,OP={'-2':0,'-1':.35,0:1,1:.45,2:.12,3:0};
+    const H=cs.map(c=>parseFloat(c.style.height)),st=(i,d)=>({transform:`translateY(${P(d)-Y[i]-(H[i]-[46.2,49.9,46.2,46.2][i])/2}px) scale(${1-.07*Math.abs(d)})`,opacity:OP[Math.min(d,3)],filter:`blur(${Math.abs(d)*.6}px)`});
+    cs.forEach(c=>c.style.transformOrigin='50% 50%');
+    // 첫 등장: 첫 말풍선과 다음 말풍선이 함께 아래에서 위로 올라오며 등장, 첫 말풍선은 바로 가운데(포커스)에 안착하고 다음 말풍선은 대기 자리에 안착
+    A(cs[0],[{...st(0,-1),opacity:0},st(0,0)],750,0,'move');
+    A(cs[1],[st(1,-2),st(1,-1)],750,0,'move');
+    await wait(1250); // 말풍선마다 1초: 이동 0.6초(750×0.8) + 정지 0.4초
+    for(let s=1;s<4;s++){if(!alive())return;
+      // 말풍선마다 1초: 이동 0.6초(750×0.8) + 정지 0.4초
+      for(let i=0;i<=Math.min(s+1,3);i++)A(cs[i],[st(i,s-1-i),st(i,s-i)],750,0,'move');
+      await wait(1250);}
+  },
+  async 3(el){unsettle();setP4Lang(el);A(el.querySelector('.phone'),[{transform:'translateY(300px)'},{transform:'translateY(300px)'}],1);reveal(el,'.sub');await wait(reveal(el,'.t',150));},
+  async 5(el,alive){
+    const bs=[...el.querySelectorAll('.bb')];bs.forEach(HIDE);
+    // 장면 A(숫자): 자릿수가 위아래 페이드 마스크 안에서 굴러 정착 → '+' 팝 → 단위 문구 페이드업
+    // 장면 B(버블): 숫자가 은은하게 사라진 뒤 결제수단 버블이 떨어짐
+    const num=el.querySelector('.num'),unit=el.querySelector('.unit');
+    const end=reveal(el,'.t'),s0=end-300;
+    A(num,[{opacity:0,transform:'scale(.94)'},{opacity:1,transform:'scale(1)'}],900,s0,'decel');
+    const rolled=rollOdo(num,s0);
+    A(num.querySelector('.plus'),[{opacity:0,transform:'scale(.4)'},{opacity:1,transform:'scale(1)'}],550,rolled-300,'spring');
+    A(unit,[{opacity:0,transform:'translateY(6px)'},{opacity:1,transform:'translateY(0)'}],600,rolled-100,'decel');
+    await wait(rolled+1300);if(!alive())return;
+    const SOFT=[{opacity:1,filter:'blur(0)',transform:'scale(1)'},{opacity:0,filter:'blur(6px)',transform:'scale(.94)'}];
+    A(num,SOFT,700,0,'move');A(unit,SOFT,700,60,'move');
+    await wait(550);if(!alive())return;
+    bs.slice().sort((a,b)=>parseFloat(b.style.top)-parseFloat(a.style.top)).forEach((b,i)=>{const top=parseFloat(b.style.top),h=parseFloat(b.style.height);
+      A(b,[{transform:`translateY(${-(top+h+20)}px)`,opacity:1},{transform:'translateY(0)',opacity:1}],800,i*70,'spring');});
+    await wait(800+bs.length*70);
+  },
+  async 6(el,alive){
+    const tr=el.querySelector('.ltrack'),items=[...tr.children],lbl=el.querySelector('.pbtn .ln>span');
+    const go=(i)=>{items.forEach((s,j)=>s.classList.toggle('on',j===i));return `translateX(${-(i*LW+LW/2)}px)`;};
+    const st=LANG==='en'?2:1; // KR이면 한국어, EN이면 ENGLISH부터 시작
+    tr.style.transform=go(st);setPayLabel(lbl,st);
+    const end=reveal(el,'.t');A(el.querySelector('.lang'),DROP,600,end-300);A(el.querySelector('.pbtn'),DROP,600,end-220);const fe=reveal(el,'.foot',end+200);
+    // 기다리지 않고 바로 롤링: 카드가 내려와 자리 잡는 시점(타이틀 끝 +300ms)에 곧바로 첫 롤링 시작
+    el._lcur=st;await wait(end+300);
+  },
+  async 7(el,alive){
+    const g=el.querySelector('.b-g'),ap=el.querySelector('.b-a'),pp=el.querySelector('.pp'),h=el.querySelector('.hand');
+    HIDE(h);const end=reveal(el,'.t');[g,ap,pp].forEach((b,i)=>A(b,DROP,600,end-300+i*80));reveal(el,'.foot',end+200);
+    await wait(end+900);if(!alive())return;
+    await drag7(el,alive);
+  },
+  async 8(el,alive,shared){A(el.querySelector('.pw'),DROP,600,shared?250:0);A(el.querySelector('.done'),[{opacity:0,transform:'translateY(-12px) scale(.9)'},{opacity:1,transform:'translateY(0) scale(1)'}],600,shared?700:400,'spring');
+    A(el.querySelector('.pp8'),DROP,600,shared?250:0);await wait(shared?1300:1000);}
+};
+const LV_SVG={"ja":"<svg class=\"lv-svg\" aria-hidden=\"true\" focusable=\"false\" viewBox=\"0 0 44 15\" fill=\"none\" xmlns=\"http://www.w3.org/2000/svg\"><path d=\"M11.1507 14.7831H9.17897V2.80311H1.90459V14.8165H0V0.976085H11.1507V14.7831ZM10.018 8.20078H1.30888V6.37375H10.018V8.20078ZM10.0096 13.782H1.26693V11.9216H10.0096V13.782Z\" fill=\"currentColor\"/><path d=\"M28.083 5.00556H13.8698V3.1535H28.083V5.00556ZM24.6429 12.2636H17.1672V10.4032H24.6429V12.2636ZM21.9329 15H19.9779V0H21.9329V15ZM21.119 4.32981C20.6548 5.49778 20.0898 6.60456 19.4242 7.65017C18.7586 8.69577 18.0146 9.64127 17.1924 10.4867C16.3757 11.332 15.5059 12.0412 14.583 12.614C14.4208 12.3693 14.2082 12.0996 13.9453 11.8048C13.6824 11.51 13.4503 11.2736 13.2489 11.0957C14.1103 10.6285 14.9382 10.0139 15.7325 9.25195C16.5323 8.48443 17.2483 7.63348 17.8804 6.69911C18.5124 5.76474 19.0242 4.80534 19.4158 3.82091L21.119 4.32981ZM22.4782 3.87097C22.8866 4.82202 23.4096 5.75361 24.0472 6.66574C24.6849 7.5723 25.4065 8.39266 26.2119 9.12681C27.023 9.86096 27.8732 10.4588 28.7626 10.9205C28.5388 11.1096 28.2843 11.3654 27.9991 11.688C27.7194 12.0106 27.4984 12.3026 27.3362 12.564C26.4189 12.0078 25.5491 11.3126 24.7268 10.4783C23.9102 9.64405 23.1718 8.71246 22.5118 7.68354C21.8574 6.64905 21.2952 5.55617 20.8254 4.40489L22.4782 3.87097Z\" fill=\"currentColor\"/><path d=\"M42.9596 14.9416H41.1641V10.6452H37.6402V15H35.9118V9.01835H42.9596V14.9416ZM42.5904 7.37486H40.8453V4.78865H35.5845V3.25362H42.5904V7.37486ZM39.3853 1.25973C39.2231 2.37208 39.0469 3.48721 38.8568 4.60512C38.6722 5.72303 38.5016 6.64349 38.3449 7.36652H36.5746C36.748 6.599 36.9298 5.63682 37.12 4.47998C37.3101 3.32314 37.4752 2.19967 37.615 1.10957L39.3853 1.25973ZM43.4295 2.04394H35.3496V0.475528H43.4295V2.04394ZM44 8.11735H34.7371V6.52392H44V8.11735ZM42.2213 14.3826H36.6333V12.7558H42.2213V14.3826ZM34.2505 6.39878H29.6191V5.00556H34.2505V6.39878ZM34.2757 1.89377H29.703V0.508899H34.2757V1.89377ZM34.2505 8.62625H29.6191V7.25806H34.2505V8.62625ZM34.821 4.14627H28.8136V2.71969H34.821V4.14627ZM34.3596 14.3409H30.4413V12.9227H32.7654V10.9538H30.4413V9.51057H34.3596V14.3409ZM31.1209 14.9833H29.5519V9.51057H31.1209V14.9833Z\" fill=\"currentColor\"/></svg>","sc":"<svg class=\"lv-svg\" aria-hidden=\"true\" focusable=\"false\" viewBox=\"0 0 61 15\" fill=\"none\" xmlns=\"http://www.w3.org/2000/svg\"><path d=\"M2.54897 1.35933H7.47166V2.90832H2.54897V1.35933ZM8.71429 1.37513H14.6725V2.90832H8.71429V1.37513ZM2.51711 0.0632236L4.30138 0.537407C4.08897 1.07482 3.83407 1.60695 3.53669 2.13382C3.23931 2.6607 2.92069 3.15595 2.58083 3.6196C2.25159 4.07271 1.91173 4.46786 1.56124 4.80506C1.44442 4.69968 1.29042 4.58377 1.09924 4.45732C0.918691 4.33087 0.727518 4.20443 0.525725 4.07798C0.323931 3.95153 0.14869 3.85669 0 3.79347C0.531035 3.34036 1.01428 2.78188 1.44973 2.11802C1.8958 1.45416 2.25159 0.76923 2.51711 0.0632236ZM9.00104 0.110642L10.8013 0.521601C10.5676 1.30137 10.249 2.05479 9.84539 2.78188C9.4418 3.50896 9.01698 4.11486 8.57091 4.59958C8.4647 4.4942 8.31601 4.37829 8.12484 4.25184C7.93366 4.12539 7.73718 3.99895 7.53539 3.8725C7.34421 3.74605 7.17428 3.65121 7.02559 3.58799C7.46104 3.16649 7.85401 2.64489 8.20449 2.02318C8.55497 1.40148 8.82049 0.763962 9.00104 0.110642ZM3.42518 2.56059L4.95456 1.95996C5.18821 2.28662 5.41656 2.65543 5.63959 3.06639C5.87325 3.46681 6.04318 3.81981 6.14939 4.12539L4.50849 4.80506C4.42352 4.51001 4.27483 4.15174 4.06242 3.73024C3.85 3.29821 3.63759 2.90832 3.42518 2.56059ZM10.2437 2.49737L11.789 1.8177C12.0545 2.1549 12.3253 2.53425 12.6015 2.95574C12.8776 3.37724 13.0847 3.74605 13.2228 4.06217L11.5819 4.82086C11.4757 4.50474 11.2898 4.13066 11.0243 3.69863C10.7588 3.25606 10.4986 2.85564 10.2437 2.49737ZM5.32097 9.67334H9.67015V10.9536H5.32097V9.67334ZM0.924001 6.54373H2.78793V14.9842H0.924001V6.54373ZM5.17759 4.88409H13.3821V6.55954H5.17759V4.88409ZM1.75242 5.23182L3.13842 4.29926C3.46766 4.5627 3.80221 4.87882 4.14207 5.24763C4.48194 5.6059 4.74214 5.92202 4.9227 6.196L3.42518 7.2392C3.27649 6.95469 3.03752 6.62276 2.70828 6.24341C2.38966 5.86407 2.07104 5.52687 1.75242 5.23182ZM12.235 4.88409H14.1149V12.9926C14.1149 13.4457 14.0565 13.7935 13.9397 14.0358C13.8335 14.2782 13.6264 14.4679 13.3184 14.6048C13.021 14.7208 12.6493 14.7945 12.2032 14.8261C11.7677 14.8577 11.2526 14.8683 10.6579 14.8577C10.6154 14.6259 10.541 14.3572 10.4348 14.0516C10.3286 13.746 10.2171 13.4773 10.1003 13.2455C10.3339 13.2561 10.5729 13.2666 10.8172 13.2771C11.0721 13.2877 11.3004 13.2929 11.5022 13.2929C11.704 13.2824 11.8421 13.2771 11.9164 13.2771C12.0439 13.2771 12.1288 13.2561 12.1713 13.2139C12.2138 13.1718 12.235 13.098 12.235 12.9926V4.88409ZM6.18125 8.86723V11.8072H8.88953V8.86723H6.18125ZM4.57221 7.47629H10.5782V13.1981H4.57221V7.47629Z\" fill=\"currentColor\"/><path d=\"M18.3366 0.221286L20.1528 0.774499C19.8448 1.65964 19.4731 2.55532 19.0376 3.46154C18.6128 4.35722 18.1455 5.21075 17.6357 6.02213C17.1365 6.82297 16.6161 7.52898 16.0744 8.14015C16.0107 7.98209 15.9151 7.78188 15.7877 7.53952C15.6708 7.28662 15.5434 7.03372 15.4053 6.78082C15.2673 6.52792 15.1398 6.32244 15.023 6.16438C15.4797 5.67966 15.9098 5.12118 16.3134 4.48894C16.7276 3.84615 17.1046 3.16122 17.4445 2.43414C17.795 1.70706 18.0924 0.969441 18.3366 0.221286ZM17.0462 4.59958L18.8624 2.79768V14.9842H17.0462V4.59958ZM23.8329 0.237091H25.6968V14.8894H23.8329V0.237091ZM19.7864 2.98736H30.1097V4.78925H19.7864V2.98736ZM21.73 10.6533H27.8475V12.3446H21.73V10.6533ZM26.3818 3.99895C26.658 4.88409 27.0138 5.77977 27.4492 6.68599C27.8847 7.58166 28.3679 8.41939 28.8989 9.19916C29.43 9.96839 29.9822 10.6217 30.5558 11.1591C30.3327 11.3172 30.0778 11.5385 29.7911 11.823C29.5149 12.1075 29.2919 12.3762 29.122 12.6291C28.5484 11.9968 28.0015 11.2381 27.4811 10.353C26.9607 9.46786 26.4933 8.51423 26.0791 7.4921C25.6649 6.45943 25.3091 5.4215 25.0118 4.37829L26.3818 3.99895ZM23.2434 3.84088L24.6294 4.22023C24.332 5.31612 23.9656 6.39094 23.5302 7.44468C23.0947 8.49842 22.6062 9.47313 22.0645 10.3688C21.5229 11.2645 20.9387 12.0337 20.3121 12.6765C20.2059 12.529 20.0731 12.3656 19.9138 12.1865C19.7545 11.9968 19.5846 11.8177 19.404 11.6491C19.2341 11.4805 19.0801 11.3435 18.942 11.2381C19.558 10.7007 20.1368 10.0369 20.6785 9.24658C21.2308 8.44573 21.7246 7.58166 22.1601 6.65437C22.6062 5.71654 22.9673 4.77871 23.2434 3.84088Z\" fill=\"currentColor\"/><path d=\"M31.5116 2.90832H44.6707V10.843H42.6634V4.77345H33.4233V10.922H31.5116V2.90832ZM32.4993 8.18757H43.7785V10.0527H32.4993V8.18757ZM37.0238 0.158061H39.047V15H37.0238V0.158061Z\" fill=\"currentColor\"/><path d=\"M56.4278 3.71444L58.4032 4.23604C57.766 6.16438 56.927 7.82929 55.8861 9.23077C54.8453 10.6217 53.5868 11.7861 52.1105 12.7239C50.6342 13.6617 48.9189 14.4152 46.9647 14.9842C46.901 14.8261 46.8001 14.6365 46.662 14.4152C46.524 14.1939 46.3753 13.9726 46.216 13.7513C46.0673 13.53 45.9292 13.3456 45.8018 13.1981C47.6923 12.7345 49.3332 12.0969 50.7245 11.2856C52.1158 10.4742 53.2787 9.44679 54.2134 8.20337C55.1586 6.95996 55.8968 5.46365 56.4278 3.71444ZM50.2625 3.82508C50.8147 5.36354 51.5741 6.75448 52.5406 7.99789C53.5071 9.24131 54.6913 10.3003 56.0932 11.1749C57.5058 12.039 59.1414 12.6818 61 13.1033C60.8619 13.2403 60.7079 13.4141 60.538 13.6249C60.3787 13.8462 60.2247 14.0674 60.076 14.2887C59.9273 14.51 59.8052 14.705 59.7096 14.8736C57.7554 14.3572 56.0614 13.6196 54.6276 12.6607C53.2044 11.7018 51.9936 10.5269 50.9953 9.13593C49.997 7.74499 49.1632 6.15385 48.4941 4.36249L50.2625 3.82508ZM46.1045 2.82929H60.6973V4.67861H46.1045V2.82929ZM51.9671 0.600632L54.0063 0C54.2293 0.368809 54.4417 0.779768 54.6435 1.23288C54.8559 1.68598 55.0099 2.07587 55.1055 2.40253L52.9389 3.08219C52.8645 2.75553 52.7318 2.36038 52.5406 1.89673C52.3601 1.42255 52.1689 0.990516 51.9671 0.600632Z\" fill=\"currentColor\"/></svg>","tc":"<svg class=\"lv-svg\" aria-hidden=\"true\" focusable=\"false\" viewBox=\"0 0 61 15\" fill=\"none\" xmlns=\"http://www.w3.org/2000/svg\"><path d=\"M10.0607 9.7327L11.3163 9.07233C11.6448 9.3239 11.9997 9.61216 12.3812 9.93711C12.7626 10.2516 13.1335 10.566 13.4937 10.8805C13.854 11.1845 14.1507 11.457 14.3838 11.6981L13.0487 12.4843C12.8368 12.2432 12.5613 11.9654 12.2223 11.6509C11.8832 11.3365 11.5229 11.0115 11.1415 10.6761C10.76 10.3302 10.3998 10.0157 10.0607 9.7327ZM9.5839 12.8459L10.9666 11.9497C11.3587 12.0964 11.7825 12.2694 12.2381 12.4686C12.7044 12.6677 13.1547 12.8669 13.5891 13.066C14.0235 13.2652 14.3891 13.4539 14.6858 13.6321L13.2077 14.6384C12.9534 14.4602 12.6143 14.2662 12.1905 14.0566C11.7772 13.847 11.3375 13.6373 10.8713 13.4277C10.4051 13.2075 9.97594 13.0136 9.5839 12.8459ZM4.00521 12.0283L5.68994 12.6887C5.34028 12.9507 4.93764 13.2075 4.48202 13.4591C4.0264 13.7107 3.55489 13.9361 3.06748 14.1352C2.59067 14.3449 2.12976 14.5283 1.68473 14.6855C1.57877 14.5702 1.44633 14.434 1.28739 14.2767C1.12845 14.1195 0.95892 13.9623 0.778791 13.805C0.609258 13.6478 0.460917 13.522 0.333768 13.4277C1.0013 13.2704 1.66884 13.0713 2.33637 12.8302C3.0145 12.5786 3.57078 12.3113 4.00521 12.0283ZM9.53622 0.125785L11.1415 0.440251C10.9084 1.26834 10.5799 2.04402 10.1561 2.7673C9.74284 3.49057 9.26073 4.09329 8.70974 4.57547C8.62498 4.47065 8.50842 4.3501 8.36008 4.21384C8.22234 4.06709 8.0793 3.92558 7.93095 3.78931C7.78261 3.64256 7.65017 3.52725 7.53361 3.4434C8.02102 3.05556 8.43425 2.57337 8.77332 1.99685C9.11238 1.42034 9.36668 0.796645 9.53622 0.125785ZM12.413 1.93396L13.9865 2.16981C13.7216 3.07128 13.3454 3.86268 12.858 4.54402C12.3706 5.22537 11.7878 5.81237 11.1097 6.30503C10.4422 6.79769 9.68456 7.21174 8.83689 7.54717C8.77332 7.44235 8.68326 7.31132 8.5667 7.15409C8.45015 6.99685 8.3283 6.83962 8.20115 6.68239C8.074 6.52516 7.96274 6.39937 7.86738 6.30503C9.04351 5.91719 10.0236 5.36688 10.8077 4.65409C11.5918 3.9413 12.1269 3.03459 12.413 1.93396ZM9.61569 1.24214H14.8924V2.56289H8.93226L9.61569 1.24214ZM2.14565 0.0943393L3.63966 0.440251C3.38536 1.02725 3.04629 1.58281 2.62246 2.10692C2.20922 2.62054 1.7748 3.05031 1.31918 3.39623C1.22381 3.31237 1.09137 3.22327 0.921834 3.12893C0.762897 3.02411 0.598662 2.92453 0.42913 2.83019C0.259597 2.72537 0.116554 2.64675 0 2.59434C0.466215 2.27987 0.884749 1.90776 1.2556 1.47799C1.63705 1.04822 1.93373 0.587002 2.14565 0.0943393ZM2.38405 0.896226H7.89917V1.96541H1.85956L2.38405 0.896226ZM10.1561 2.37421C10.5905 3.34906 11.2368 4.19287 12.0951 4.90566C12.964 5.60797 14.0023 6.11635 15.2103 6.43082C15.0407 6.59853 14.85 6.81866 14.6381 7.09119C14.4368 7.35325 14.2778 7.5891 14.1613 7.79874C12.8792 7.37945 11.7878 6.7348 10.8872 5.86478C9.99713 4.99476 9.30841 3.94654 8.821 2.72013L10.1561 2.37421ZM1.65294 2.43711H2.98801C2.94563 2.92977 2.89265 3.45388 2.82908 4.00943C2.7761 4.55451 2.71782 5.08386 2.65425 5.59748C2.59067 6.11111 2.5271 6.5566 2.46352 6.93396H1.09666C1.17084 6.54612 1.23971 6.09539 1.30328 5.58176C1.37745 5.05765 1.44633 4.52306 1.5099 3.97799C1.57348 3.42243 1.62116 2.9088 1.65294 2.43711ZM2.06618 2.43711H6.48463V3.34906H2.06618V2.43711ZM1.74831 5.97484H7.8038V6.93396H1.74831V5.97484ZM3.49661 3.67924L3.95753 3.09748C4.21183 3.18134 4.48732 3.28616 4.784 3.41195C5.08068 3.53774 5.31379 3.6478 5.48333 3.74214L5.0383 4.40251C4.85817 4.29769 4.61977 4.17715 4.32308 4.04088C4.037 3.90461 3.76151 3.78407 3.49661 3.67924ZM3.2741 5.31447L3.75091 4.74843C4.01581 4.85325 4.30189 4.97904 4.60917 5.12579C4.92705 5.26205 5.18134 5.3826 5.37207 5.48742L4.89526 6.13207C4.70453 6.02725 4.45023 5.89623 4.13236 5.73899C3.82508 5.58176 3.539 5.44025 3.2741 5.31447ZM0.238405 4.13522H2.19333V4.24528H6.3098V4.13522H8.28062V5.12579H6.3098V5.01572H2.19333V5.12579H0.238405V4.13522ZM1.79599 12.2799C1.7748 12.1751 1.74301 12.0388 1.70063 11.8711C1.66884 11.7034 1.62116 11.5304 1.55758 11.3522C1.5046 11.174 1.45692 11.0168 1.41454 10.8805C1.70063 10.8491 2.0079 10.7914 2.33637 10.7075C2.67544 10.6237 3.06748 10.5084 3.51251 10.3616C3.75621 10.2987 4.13236 10.1834 4.64096 10.0157C5.16015 9.83753 5.74292 9.62788 6.38927 9.38679C7.0462 9.13522 7.71374 8.86268 8.39187 8.56918C9.07 8.27568 9.70575 7.96646 10.2991 7.64151L11.2686 8.74214C9.95475 9.37107 8.5614 9.93187 7.08859 10.4245C5.62637 10.9067 4.15885 11.3103 2.68603 11.6352V11.7138C2.68603 11.7138 2.63835 11.7296 2.54299 11.761C2.45822 11.7925 2.35756 11.8396 2.24101 11.9025C2.12446 11.9549 2.0185 12.0178 1.92314 12.0912C1.83837 12.1541 1.79599 12.217 1.79599 12.2799ZM1.79599 12.2799L1.7642 11.2579L2.70193 10.7547L12.2381 10.2673C12.2593 10.4455 12.2858 10.6499 12.3176 10.8805C12.3494 11.1006 12.3865 11.2788 12.4289 11.4151C10.9243 11.5094 9.62628 11.5933 8.53491 11.6667C7.45414 11.7296 6.53761 11.7872 5.78531 11.8396C5.0436 11.8816 4.43434 11.9235 3.95753 11.9654C3.49131 11.9969 3.11516 12.0335 2.82908 12.0755C2.55359 12.1069 2.33637 12.1384 2.17744 12.1698C2.0291 12.2013 1.90195 12.2379 1.79599 12.2799ZM2.62246 10.0943C2.59067 9.95807 2.5324 9.74843 2.44763 9.46541C2.37346 9.18239 2.29929 8.94654 2.22512 8.75786C2.42644 8.74738 2.63835 8.72117 2.86086 8.67924C3.08338 8.62683 3.33768 8.56394 3.62376 8.49057C3.82508 8.42767 4.14825 8.32809 4.59328 8.19182C5.0489 8.04507 5.5522 7.86688 6.10318 7.65723C6.65416 7.43711 7.17865 7.20126 7.67665 6.94969L8.64617 7.94025C7.86208 8.28616 7.03031 8.58491 6.15086 8.83648C5.282 9.08805 4.40785 9.30293 3.5284 9.48113V9.51258C3.5284 9.51258 3.48072 9.53354 3.38536 9.57547C3.28999 9.60692 3.18404 9.65409 3.06748 9.71698C2.95093 9.76939 2.84497 9.82704 2.74961 9.88994C2.66484 9.95283 2.62246 10.021 2.62246 10.0943ZM2.62246 10.0943V9.15094L3.35357 8.75786L8.37598 8.67924C8.323 8.85744 8.27002 9.0566 8.21704 9.27673C8.17466 9.48637 8.14287 9.65409 8.12168 9.77987C6.99852 9.81132 6.09258 9.84277 5.40386 9.87421C4.72573 9.89518 4.19594 9.91614 3.81449 9.93711C3.44363 9.95807 3.17344 9.98428 3.00391 10.0157C2.84497 10.0367 2.71782 10.0629 2.62246 10.0943ZM6.72303 10.7862H8.5667V13.3491C8.5667 13.7474 8.51372 14.0514 8.40776 14.261C8.30181 14.4811 8.08989 14.6488 7.77202 14.7642C7.47533 14.8795 7.12038 14.9476 6.70714 14.9686C6.3045 14.9895 5.83828 15 5.30849 15C5.25552 14.7694 5.16545 14.5126 5.0383 14.2296C4.91115 13.9465 4.784 13.7055 4.65685 13.5063C4.90056 13.5168 5.14426 13.522 5.38796 13.522C5.63167 13.5325 5.84888 13.5325 6.0396 13.522C6.23033 13.522 6.35748 13.522 6.42105 13.522C6.5482 13.522 6.62767 13.5063 6.65946 13.4748C6.70184 13.4434 6.72303 13.3857 6.72303 13.3019V10.7862ZM6.15086 2.43711H7.51772C7.51772 2.43711 7.51242 2.50524 7.50182 2.64151C7.50182 2.7673 7.49653 2.86688 7.48593 2.94025C7.41176 3.98847 7.33229 4.83228 7.24753 5.4717C7.17335 6.11111 7.08329 6.59329 6.97733 6.91824C6.88197 7.24319 6.77071 7.47904 6.64356 7.62579C6.51641 7.77254 6.36807 7.87736 6.19854 7.94025C6.02901 7.99266 5.84888 8.02935 5.65815 8.05031C5.50981 8.0608 5.30849 8.06604 5.0542 8.06604C4.7999 8.05556 4.535 8.04507 4.25951 8.03459C4.24891 7.9088 4.21713 7.76205 4.16415 7.59434C4.12177 7.42662 4.06879 7.27987 4.00521 7.15409C4.23832 7.17505 4.44494 7.19077 4.62506 7.20126C4.81579 7.21174 4.95883 7.21698 5.0542 7.21698C5.16015 7.21698 5.24492 7.2065 5.30849 7.18553C5.37207 7.16457 5.43035 7.12264 5.48333 7.05975C5.56809 6.95493 5.65286 6.75052 5.73762 6.44654C5.82239 6.13208 5.89656 5.66562 5.96014 5.04717C6.03431 4.42872 6.09788 3.62683 6.15086 2.64151V2.43711Z\" fill=\"currentColor\"/><path d=\"M22.0763 6.91824H30.2139V8.27044H22.0763V6.91824ZM21.9015 13.3176H30.3411V14.6855H21.9015V13.3176ZM24.2061 0.172956H25.6842V2.24843H24.2061V0.172956ZM26.3676 0.172956H27.8616V2.24843H26.3676V0.172956ZM23.7293 4.40251V5.14151H28.4338V4.40251H23.7293ZM23.7293 2.53145V3.25472H28.4338V2.53145H23.7293ZM22.3147 1.30503H29.9119V6.36792H22.3147V1.30503ZM24.3332 9.92138V10.739H27.7981V9.92138H24.3332ZM22.6803 8.77358H29.5623V11.8711H22.6803V8.77358ZM27.2736 11.7296L28.9742 12.2013C28.7517 12.5472 28.5345 12.8931 28.3226 13.239C28.1106 13.5744 27.9199 13.8574 27.7504 14.088L26.5425 13.6635C26.6696 13.391 26.8021 13.0713 26.9398 12.7044C27.0882 12.3375 27.1994 12.0126 27.2736 11.7296ZM23.3637 12.1698L24.7942 11.7453C24.9319 12.0178 25.0644 12.3218 25.1915 12.6572C25.3187 12.9927 25.4193 13.2809 25.4935 13.522L23.9995 14.0094C23.9465 13.7683 23.8564 13.4748 23.7293 13.1289C23.6127 12.7725 23.4909 12.4528 23.3637 12.1698ZM24.5399 1.98113H25.7001V5.86478H24.5399V1.98113ZM26.4471 1.98113H27.6073V5.86478H26.4471V1.98113ZM17.0539 7.05975H20.5823V8.28616H17.0539V7.05975ZM19.74 7.05975H21.3134V13.3019C21.3134 13.6478 21.2764 13.9203 21.2022 14.1195C21.128 14.3187 20.9797 14.4811 20.7572 14.6069C20.5452 14.7327 20.2857 14.8061 19.9784 14.827C19.6817 14.848 19.3214 14.8585 18.8976 14.8585C18.8764 14.6593 18.8181 14.4235 18.7228 14.1509C18.638 13.8889 18.5479 13.6635 18.4526 13.4748C18.6857 13.4853 18.9029 13.4906 19.1042 13.4906C19.3161 13.4906 19.4592 13.4906 19.5333 13.4906C19.6711 13.4906 19.74 13.4224 19.74 13.2862V7.05975ZM16.1639 0.660377H21.3611V5.73899H19.8035V1.99685H17.642V5.73899H16.1639V0.660377ZM15.544 5.14151H22.0128V7.61006H20.5823V6.41509H16.9109V7.61006H15.544V5.14151ZM18.246 2.62579H20.8366V3.69497H19.2155V5.56604H18.246V2.62579ZM16.3387 7.05975H17.8804V10.0629C17.8804 10.5556 17.8539 11.1006 17.8009 11.6981C17.748 12.2956 17.6473 12.8826 17.499 13.4591C17.3506 14.0356 17.1228 14.544 16.8155 14.9843C16.7308 14.8899 16.6036 14.7799 16.4341 14.6541C16.2751 14.5388 16.1056 14.4235 15.9255 14.3082C15.7559 14.2034 15.6076 14.1247 15.4805 14.0723C15.7454 13.674 15.9361 13.2442 16.0526 12.783C16.1798 12.3113 16.2593 11.8396 16.291 11.3679C16.3228 10.8962 16.3387 10.4507 16.3387 10.0314V7.05975ZM17.6102 11.588C17.9811 11.4518 18.4102 11.2683 18.8976 11.0377C19.385 10.8071 19.8989 10.566 20.4393 10.3145L20.7095 11.2421C20.2645 11.5147 19.8353 11.7872 19.4221 12.0597C19.0089 12.3323 18.6009 12.5891 18.1983 12.8302L17.6102 11.588ZM17.642 9.41824L18.4208 8.6478C18.6857 8.81551 18.9612 8.99895 19.2473 9.19811C19.5334 9.39727 19.7559 9.58071 19.9148 9.74843L19.1042 10.6447C18.9453 10.4874 18.7228 10.2935 18.4367 10.0629C18.1612 9.8218 17.8963 9.60692 17.642 9.41824Z\" fill=\"currentColor\"/><path d=\"M31.5808 2.89308H44.709V10.7862H42.7064V4.74843H33.488V10.8648H31.5808V2.89308ZM32.5662 8.14465H43.8189V10H32.5662V8.14465ZM37.08 0.157233H39.0985V14.9214H37.08V0.157233Z\" fill=\"currentColor\"/><path d=\"M56.4385 3.69497L58.4093 4.21384C57.7736 6.13208 56.9365 7.78826 55.8981 9.18239C54.8597 10.566 53.6041 11.7243 52.1313 12.6572C50.6585 13.5901 48.9473 14.3396 46.9977 14.9057C46.9341 14.7484 46.8334 14.5597 46.6957 14.3396C46.5579 14.1195 46.4096 13.8994 46.2507 13.6792C46.1023 13.4591 45.9646 13.2757 45.8374 13.1289C47.7235 12.6677 49.3605 12.0335 50.7486 11.2264C52.1366 10.4193 53.2969 9.39727 54.2293 8.16038C55.1723 6.92348 55.9087 5.43501 56.4385 3.69497ZM50.2876 3.80503C50.8386 5.33543 51.5962 6.71908 52.5604 7.95598C53.5247 9.19287 54.7061 10.2463 56.1047 11.1164C57.514 11.9759 59.1457 12.6153 61 13.0346C60.8623 13.1709 60.7086 13.3438 60.5391 13.5535C60.3801 13.7736 60.2265 13.9937 60.0782 14.2138C59.9298 14.434 59.808 14.6279 59.7126 14.7956C57.763 14.282 56.073 13.5482 54.6425 12.5943C53.2227 11.6405 52.0148 10.4717 51.0188 9.08805C50.0228 7.7044 49.191 6.12159 48.5234 4.33962L50.2876 3.80503ZM46.1394 2.81446H60.698V4.65409H46.1394V2.81446ZM51.9883 0.597484L54.0227 0C54.2452 0.366876 54.4571 0.775681 54.6584 1.22641C54.8703 1.67715 55.024 2.06499 55.1193 2.38994L52.9578 3.06604C52.8836 2.74109 52.7512 2.34801 52.5604 1.88679C52.3803 1.41509 52.1896 0.985325 51.9883 0.597484Z\" fill=\"currentColor\"/></svg>","ko":"<svg class=\"lv-svg\" aria-hidden=\"true\" focusable=\"false\" viewBox=\"0 0 49 19\" fill=\"none\" xmlns=\"http://www.w3.org/2000/svg\"><path d=\"M14.3126 13.5004H11.7868V0.0396196H14.3126V13.5004ZM16.7492 7.62677H13.5796V5.55665H16.7492V7.62677ZM10.7072 3.91244H0V1.92155H10.7072V3.91244ZM5.36846 4.54635C6.22688 4.54635 6.99286 4.69492 7.66639 4.99207C8.33993 5.28261 8.86488 5.69202 9.24127 6.22028C9.61766 6.74854 9.80585 7.35604 9.80585 8.04278C9.80585 8.72292 9.61766 9.32381 9.24127 9.84547C8.86488 10.3605 8.33993 10.7633 7.66639 11.0539C6.99286 11.3444 6.22688 11.4897 5.36846 11.4897C4.49682 11.4897 3.72094 11.3444 3.0408 11.0539C2.36067 10.7633 1.83241 10.3605 1.45602 9.84547C1.07963 9.32381 0.891441 8.72292 0.891441 8.04278C0.891441 7.35604 1.07963 6.74854 1.45602 6.22028C1.83241 5.69202 2.36067 5.28261 3.0408 4.99207C3.72094 4.69492 4.49682 4.54635 5.36846 4.54635ZM5.36846 6.48771C4.96566 6.48771 4.60908 6.54714 4.29873 6.666C3.99498 6.78486 3.76056 6.96314 3.59548 7.20086C3.4304 7.43858 3.34786 7.71922 3.34786 8.04278C3.34786 8.36634 3.4304 8.64368 3.59548 8.87479C3.76056 9.0993 3.99498 9.27099 4.29873 9.38984C4.60908 9.5087 4.96566 9.56813 5.36846 9.56813C5.77125 9.56813 6.12453 9.5087 6.42828 9.38984C6.73863 9.27099 6.97965 9.0993 7.15134 8.87479C7.32302 8.64368 7.40886 8.36634 7.40886 8.04278C7.40886 7.71922 7.32302 7.43858 7.15134 7.20086C6.97965 6.96314 6.73863 6.78486 6.42828 6.666C6.12453 6.54714 5.77125 6.48771 5.36846 6.48771ZM6.62638 2.90214H4.10063V0.0099049H6.62638V2.90214ZM14.9564 17.7397H2.61489V15.6993H14.9564V17.7397ZM5.14064 16.5709H2.61489V12.4604H5.14064V16.5709Z\" fill=\"currentColor\"/><path d=\"M30.2801 2.81299H18.7508V0.812202H30.2801V2.81299ZM33.2218 9.04317H16.7401V7.02257H33.2218V9.04317ZM26.2092 12.2623H23.6735V8.43897H26.2092V12.2623ZM31.2706 2.2187C31.2706 3.28843 31.2375 4.2525 31.1715 5.11093C31.1121 5.96275 30.9569 6.92352 30.706 7.99325L28.2099 7.72582C28.375 6.99946 28.4972 6.31933 28.5764 5.68541C28.6557 5.0449 28.7052 4.48692 28.725 4.01148C28.7448 3.53605 28.7547 2.93845 28.7547 2.2187V0.812202H31.2706V2.2187ZM31.2904 18.0467H28.7547V13.6093H18.3843V11.6184H31.2904V18.0467Z\" fill=\"currentColor\"/><path d=\"M38.4227 1.27773C39.3207 1.27773 40.123 1.54186 40.8296 2.07012C41.5361 2.59839 42.0875 3.34786 42.4837 4.31854C42.8865 5.28922 43.0879 6.41838 43.0879 7.70601C43.0879 9.00025 42.8865 10.1327 42.4837 11.1034C42.0875 12.0741 41.5361 12.8235 40.8296 13.3518C40.123 13.8735 39.3207 14.1343 38.4227 14.1343C37.518 14.1343 36.7091 13.8735 35.996 13.3518C35.2894 12.8301 34.7348 12.084 34.332 11.1133C33.9292 10.136 33.7278 9.00025 33.7278 7.70601C33.7278 6.41838 33.9292 5.28922 34.332 4.31854C34.7348 3.34786 35.2894 2.59839 35.996 2.07012C36.7091 1.54186 37.518 1.27773 38.4227 1.27773ZM38.4227 3.56576C37.9737 3.55916 37.5742 3.71764 37.2242 4.0412C36.8808 4.36476 36.6167 4.83689 36.4318 5.4576C36.2535 6.07831 36.1644 6.82778 36.1644 7.70601C36.1644 8.58425 36.2535 9.33372 36.4318 9.95442C36.6167 10.5751 36.8808 11.0473 37.2242 11.3708C37.5742 11.6878 37.9737 11.8463 38.4227 11.8463C38.8783 11.8463 39.2778 11.6878 39.6212 11.3708C39.9646 11.0473 40.2287 10.5751 40.4136 9.95442C40.5985 9.33372 40.6909 8.58425 40.6909 7.70601C40.6909 6.82117 40.5952 6.0684 40.4037 5.44769C40.2188 4.82699 39.958 4.35816 39.6212 4.0412C39.2844 3.71764 38.8849 3.55916 38.4227 3.56576ZM48.6644 18.0963H46.1584V0H48.6644V18.0963ZM47.2381 8.55783H42.3351V6.52733H47.2381V8.55783Z\" fill=\"currentColor\"/></svg>","en":"<svg class=\"lv-svg\" aria-hidden=\"true\" focusable=\"false\" viewBox=\"0 0 69 13\" fill=\"none\" xmlns=\"http://www.w3.org/2000/svg\"><path d=\"M0 0.174731H8.54317V2.3414H2.63678V5.41667H8.09492V7.5746H2.63678V10.6586H8.56075V12.8253H0V0.174731Z\" fill=\"currentColor\"/><path d=\"M20.4885 12.8253H18.2033L12.6133 4.78763H12.5166V12.8253H9.87984V0.174731H12.2002L17.7462 8.20363H17.8605V0.174731H20.4885V12.8253Z\" fill=\"currentColor\"/><path d=\"M30.3771 4.2547C30.2658 3.85282 30.0842 3.50918 29.8322 3.22379C29.5802 2.93257 29.2726 2.71125 28.9093 2.55981C28.5519 2.40255 28.1388 2.32392 27.67 2.32392C27.0138 2.32392 26.4366 2.48701 25.9385 2.81317C25.4463 3.13934 25.0596 3.61694 24.7784 4.24597C24.503 4.86918 24.3653 5.61761 24.3653 6.49126C24.3653 7.37074 24.5 8.125 24.7696 8.75403C25.045 9.37724 25.4317 9.85484 25.9298 10.1868C26.4337 10.513 27.0226 10.6761 27.6964 10.6761C28.3058 10.6761 28.8302 10.5654 29.2697 10.3441C29.715 10.1228 30.0519 9.81116 30.2804 9.40927C30.5148 9.00157 30.632 8.52688 30.632 7.98521L31.177 8.06384H27.8722V6.06317H33.1809V7.65323C33.1809 8.74238 32.9465 9.69176 32.4778 10.5013C32.009 11.3051 31.3586 11.9225 30.5265 12.3535C29.7004 12.7845 28.754 13 27.6876 13C26.504 13 25.4581 12.7379 24.5498 12.2137C23.6475 11.6837 22.9443 10.9294 22.4404 9.95094C21.9424 8.97245 21.6933 7.82504 21.6933 6.50874C21.6933 5.17495 21.9511 4.01882 22.4668 3.04032C22.9883 2.056 23.6973 1.30466 24.5938 0.78629C25.4903 0.262097 26.5011 0 27.6261 0C28.5753 0 29.4425 0.180556 30.2277 0.541667C31.0129 0.902778 31.6516 1.40367 32.1438 2.04435C32.6418 2.68504 32.9495 3.42182 33.0666 4.2547H30.3771Z\" fill=\"currentColor\"/><path d=\"M34.4033 0.174731H37.0401V10.6586H42.5158V12.8253H34.4033V0.174731Z\" fill=\"currentColor\"/><path d=\"M46.1465 12.8253H43.5097V0.174731H46.1465V12.8253Z\" fill=\"currentColor\"/><path d=\"M54.4794 3.79167C54.4443 3.45385 54.3359 3.16555 54.1542 2.92675C53.9784 2.68795 53.7323 2.50739 53.4159 2.38508C53.0995 2.26277 52.7216 2.20161 52.2821 2.20161C51.8544 2.20161 51.4823 2.26277 51.1659 2.38508C50.8553 2.50739 50.618 2.67921 50.4539 2.90054C50.2899 3.11604 50.2078 3.36357 50.2078 3.64314C50.202 4.06832 50.3778 4.40031 50.7352 4.63911C51.0985 4.87791 51.5995 5.07594 52.2382 5.2332L53.3808 5.50403C54.5878 5.77195 55.5224 6.20587 56.1845 6.80578C56.8525 7.39987 57.1894 8.20363 57.1953 9.21707C57.1953 9.98006 56.999 10.647 56.6064 11.2177C56.2138 11.7885 55.6484 12.2283 54.9101 12.537C54.1718 12.8457 53.2899 13 52.2645 13C51.2391 13 50.3455 12.8427 49.5838 12.5282C48.8279 12.2137 48.242 11.7507 47.8259 11.1391C47.4099 10.5217 47.1873 9.76747 47.158 8.87634H49.7244C49.7596 9.28987 49.8856 9.63934 50.1024 9.92473C50.3192 10.2101 50.6121 10.4256 50.9813 10.5712C51.3504 10.7168 51.7694 10.7896 52.2382 10.7896C52.6952 10.7896 53.0966 10.7227 53.4423 10.5887C53.788 10.4547 54.0546 10.2684 54.2421 10.0296C54.4296 9.78495 54.5234 9.50829 54.5234 9.1996C54.5234 8.92003 54.4413 8.68414 54.2773 8.49193C54.1132 8.29391 53.873 8.12791 53.5565 7.99395C53.246 7.85417 52.8446 7.72312 52.3524 7.60081L50.9549 7.26882C49.8416 6.99507 48.9861 6.57863 48.3885 6.01949C47.7966 5.45452 47.5007 4.72065 47.5007 3.81788C47.5007 3.06653 47.7058 2.40255 48.116 1.82594C48.532 1.24933 49.1033 0.800851 49.8299 0.480511C50.5623 0.16017 51.3885 0 52.3085 0C53.2343 0 54.0517 0.16017 54.7607 0.480511C55.4697 0.795027 56.0205 1.24059 56.4131 1.8172C56.8056 2.38799 57.0078 3.04615 57.0195 3.79167H54.4794Z\" fill=\"currentColor\"/><path d=\"M58.2068 0.174731H60.8436V5.41667H66.3632V0.174731H69V12.8253H66.3632V7.5746H60.8436V12.8253H58.2068V0.174731Z\" fill=\"currentColor\"/></svg>","payJA":"<svg class=\"lv-svg\" aria-hidden=\"true\" focusable=\"false\" viewBox=\"0 0 36 12\" fill=\"none\" xmlns=\"http://www.w3.org/2000/svg\"><path d=\"M3.62651 5.82672C4.25758 7.05048 5.23829 8.0248 6.56865 8.74968C7.90328 9.47455 9.57049 9.94999 11.5703 10.176C11.4253 10.3295 11.2676 10.5384 11.097 10.8028C10.9264 11.0671 10.7815 11.3145 10.6621 11.5447C9.2848 11.34 8.06744 11.016 7.00997 10.5725C5.95251 10.1291 5.03789 9.55344 4.26611 8.84562C3.49433 8.1378 2.84407 7.285 2.31534 6.28723L3.62651 5.82672ZM8.98633 5.91627H1.10011V4.55393H8.98633V5.91627ZM11.0075 3.06367H0.505281V1.68214H11.0075V3.06367ZM6.47271 5.16154H5.00164V0.0191879H6.47271V5.16154ZM9.08227 4.50915L10.0672 5.05921C9.36369 6.92683 8.21242 8.37231 6.61342 9.39567C5.01443 10.419 3.06793 11.1268 0.773911 11.5191C0.701424 11.3017 0.569241 11.0309 0.377362 10.7068C0.240915 10.4681 0.115127 10.2847 0 10.1568C2.22579 9.85405 4.06996 9.28054 5.53251 8.43627C6.99931 7.58774 8.00135 6.37464 8.53861 4.79697V4.55393H8.84562L9.08227 4.50915Z\" fill=\"currentColor\"/><path d=\"M20.5886 0.588428C20.3328 2.25138 20.0044 3.97829 19.6036 5.76916C19.2028 7.55576 18.802 9.0844 18.4012 10.3551L17.0644 10.0608C17.4652 8.78166 17.8511 7.23383 18.2221 5.41738C18.5931 3.59666 18.866 1.906 19.0408 0.345382L20.5886 0.588428ZM15.894 9.79222C16.3758 9.74958 16.9173 9.69841 17.5185 9.63871C18.1198 9.57475 18.7636 9.50866 19.4501 9.44044C19.9746 9.38074 20.5033 9.31892 21.0363 9.25496C21.5693 9.191 22.1002 9.12917 22.6289 9.06947L22.6545 10.3615C21.9595 10.4681 21.1493 10.5853 20.224 10.7132C19.2987 10.8412 18.4374 10.9605 17.6401 11.0714C17.3586 11.1098 17.1177 11.1418 16.9173 11.1673C16.7212 11.1929 16.4867 11.2249 16.2138 11.2633L15.894 9.79222ZM21.6823 5.57728C22.1727 6.48977 22.631 7.4449 23.0574 8.44267C23.4838 9.44044 23.7823 10.2911 23.9529 10.9947L22.5777 11.5127C22.4242 10.8049 22.145 9.93293 21.7399 8.89678C21.3348 7.86064 20.8999 6.90124 20.4351 6.0186L21.6823 5.57728ZM17.1604 3.70326H12.4146V2.38569H17.1604V3.70326ZM15.5678 9.95851C15.5678 10.3167 15.5251 10.5938 15.4399 10.79C15.3546 10.9904 15.2075 11.1503 14.9985 11.2697C14.7853 11.3678 14.5274 11.4338 14.2246 11.468C13.9219 11.5063 13.5061 11.5255 12.9774 11.5255C12.9518 11.3379 12.9028 11.114 12.8303 10.8539C12.7578 10.5981 12.6768 10.3806 12.5873 10.2016C12.7535 10.2058 12.9241 10.2101 13.0989 10.2144C13.278 10.2144 13.4337 10.2144 13.5658 10.2144C13.6426 10.2144 13.7108 10.2165 13.7705 10.2207C13.8302 10.2207 13.8835 10.225 13.9304 10.2335C14.0285 10.2165 14.0946 10.1909 14.1287 10.1568C14.1628 10.1227 14.1798 10.0587 14.1798 9.96491V0H15.5678V9.95851ZM12.2419 6.24246C12.5659 6.19129 12.9369 6.12733 13.3548 6.05058C13.7726 5.96956 14.1969 5.88855 14.6276 5.80753C15.0156 5.73505 15.4335 5.65403 15.8812 5.56449C16.3332 5.47068 16.7766 5.37687 17.2115 5.28306L17.3075 6.52388C16.1008 6.8181 14.813 7.11657 13.4443 7.41932C12.9795 7.50886 12.6747 7.57495 12.5297 7.61759L12.2419 6.24246Z\" fill=\"currentColor\"/><path d=\"M27.0549 9.54917C28.364 9.49374 29.496 9.34237 30.4512 9.09506C31.4063 8.84775 32.1376 8.52369 32.645 8.12287C33.1524 7.72206 33.4061 7.26581 33.4061 6.75414C33.4061 6.32347 33.2164 6.00794 32.8369 5.80753C32.4574 5.60286 31.8732 5.50053 31.0844 5.50053C30.4789 5.50053 29.7604 5.56449 28.9289 5.69241C28.0975 5.81606 26.976 6.03139 25.5647 6.3384L25.1425 4.78418C27.637 4.24265 29.6282 3.97189 31.1164 3.97189C32.4808 3.97189 33.5042 4.19362 34.1864 4.63707C34.8729 5.08053 35.2162 5.74784 35.2162 6.63901C35.2162 7.5046 34.9028 8.26571 34.276 8.92237C33.6534 9.57476 32.758 10.0886 31.5897 10.4638C30.4213 10.839 29.0377 11.0522 27.4387 11.1034L27.0549 9.54917ZM33.3741 2.72468C32.5128 2.72468 31.5022 2.69057 30.3424 2.62234C29.1869 2.55412 28.0527 2.46245 26.9398 2.34732L27.1381 0.72914C28.0591 0.844267 29.091 0.940206 30.2337 1.01696C31.3765 1.08945 32.4233 1.12569 33.3741 1.12569V2.72468Z\" fill=\"currentColor\"/></svg>","paySC":"<svg class=\"lv-svg\" aria-hidden=\"true\" focusable=\"false\" viewBox=\"0 0 26 13\" fill=\"none\" xmlns=\"http://www.w3.org/2000/svg\"><path d=\"M4.25715 2.81627H12.3392V4.40124H4.25715V2.81627ZM9.26094 0.130989H10.8852V10.3744C10.8852 10.8808 10.8197 11.252 10.6887 11.4878C10.5665 11.7323 10.3438 11.9157 10.0207 12.0379C9.70631 12.1514 9.29151 12.2257 8.77628 12.2606C8.26979 12.2955 7.65414 12.3086 6.92933 12.2999C6.91187 12.1427 6.86821 11.9724 6.79835 11.789C6.73722 11.6057 6.66299 11.4179 6.57566 11.2258C6.49707 11.0337 6.41411 10.8721 6.32678 10.7411C6.66736 10.7499 7.00793 10.7586 7.3485 10.7673C7.69781 10.7761 8.00345 10.7804 8.26542 10.7804C8.5274 10.7717 8.71079 10.7673 8.81558 10.7673C8.9815 10.7673 9.09503 10.7368 9.15615 10.6756C9.22601 10.6145 9.26094 10.5141 9.26094 10.3744V0.130989ZM4.8466 5.98621L6.23509 5.34436C6.43594 5.65874 6.64989 6.00368 6.87694 6.37918C7.10399 6.74595 7.3223 7.10835 7.53189 7.46639C7.74147 7.8157 7.90739 8.12134 8.02964 8.38332L6.53637 9.15615C6.43158 8.87671 6.28312 8.55797 6.091 8.19993C5.89889 7.84189 5.69367 7.46639 5.47535 7.07342C5.25704 6.68046 5.04746 6.31805 4.8466 5.98621ZM1.84695 3.82489L3.41882 2.25302L3.44502 2.26612V12.2606H1.84695V3.82489ZM3.14374 0.0523958L4.70252 0.537056C4.40561 1.29679 4.0563 2.05653 3.6546 2.81627C3.2529 3.57601 2.82064 4.29208 2.35781 4.9645C1.89498 5.63691 1.41468 6.22199 0.916925 6.71975C0.864529 6.58876 0.78157 6.41848 0.668046 6.20889C0.563254 5.99931 0.44973 5.79409 0.327473 5.59324C0.205217 5.38366 0.0960588 5.21337 0 5.08239C0.419166 4.68068 0.825233 4.21349 1.2182 3.6808C1.61117 3.13938 1.97357 2.55866 2.30541 1.93864C2.63725 1.31863 2.9167 0.689877 3.14374 0.0523958Z\" fill=\"currentColor\"/><path d=\"M21.3513 4.63702H22.8445V5.29197C22.8445 5.76353 22.814 6.29185 22.7528 6.87694C22.7004 7.45329 22.5869 8.06021 22.4123 8.69769C22.2376 9.32644 21.9713 9.95082 21.6132 10.5708C21.2552 11.1909 20.7749 11.7759 20.1724 12.3261C20.085 12.2126 19.9715 12.0859 19.8318 11.9462C19.7008 11.8152 19.5567 11.6842 19.3995 11.5533C19.2511 11.431 19.1113 11.3306 18.9804 11.252C19.5305 10.7804 19.9628 10.2827 20.2771 9.7587C20.6003 9.22601 20.836 8.69332 20.9845 8.16063C21.1329 7.61921 21.229 7.09962 21.2727 6.60186C21.3251 6.1041 21.3513 5.65437 21.3513 5.25267V4.63702ZM22.7397 6.22199C22.8795 6.90314 23.0716 7.55372 23.3161 8.17373C23.5606 8.78502 23.8706 9.3308 24.2461 9.8111C24.6216 10.2827 25.0757 10.6538 25.6084 10.9245C25.4862 11.0293 25.3595 11.1559 25.2285 11.3044C25.0976 11.4616 24.9709 11.6231 24.8487 11.789C24.7264 11.955 24.626 12.1121 24.5474 12.2606C23.971 11.8938 23.482 11.4223 23.0803 10.8459C22.6873 10.2696 22.3642 9.61025 22.111 8.86798C21.8577 8.11697 21.6482 7.3092 21.4822 6.44467L22.7397 6.22199ZM13.3216 1.03482H19.465V2.31851H13.3216V1.03482ZM13.1382 6.74595H19.6222V8.02964H13.1382V6.74595ZM13.6491 2.97346H19.1768V4.24405H13.6491V2.97346ZM13.7277 4.8597H19.0982V6.1303H13.7277V4.8597ZM15.6925 7.2961H17.1596V10.8066C17.1596 11.1297 17.1247 11.3873 17.0548 11.5795C16.9937 11.7803 16.854 11.9331 16.6356 12.0379C16.4261 12.1514 16.1859 12.2213 15.9152 12.2475C15.6445 12.2737 15.3257 12.2868 14.959 12.2868C14.9328 12.0772 14.876 11.8458 14.7887 11.5926C14.7101 11.3393 14.6271 11.1166 14.5398 10.9245C14.7494 10.9332 14.9459 10.9376 15.1293 10.9376C15.3214 10.9376 15.4524 10.9376 15.5222 10.9376C15.6358 10.9376 15.6925 10.8852 15.6925 10.7804V7.2961ZM15.6794 0.0654946H17.1465V3.81179H15.6794V0.0654946ZM13.9766 8.27852L15.2603 8.5798C15.1293 9.06009 14.9677 9.55785 14.7756 10.0731C14.5835 10.5796 14.3957 11.0118 14.2123 11.3699C14.0726 11.2825 13.8761 11.1865 13.6229 11.0817C13.3784 10.9769 13.1732 10.8983 13.0072 10.8459C13.1994 10.5053 13.3827 10.1036 13.5574 9.64081C13.732 9.16925 13.8718 8.71516 13.9766 8.27852ZM17.5264 8.71079L18.6922 8.25233C18.8057 8.47064 18.9149 8.70206 19.0196 8.94657C19.1332 9.18235 19.238 9.41813 19.334 9.65391C19.4301 9.88969 19.4999 10.0993 19.5436 10.2827L18.3123 10.8066C18.2686 10.6232 18.2031 10.4137 18.1158 10.1779C18.0285 9.93336 17.9324 9.68448 17.8276 9.43123C17.7316 9.16925 17.6312 8.9291 17.5264 8.71079ZM20.6439 2.34471H24.3378V3.77249H20.6439V2.34471ZM20.395 0L21.9276 0.209583C21.8228 1.00425 21.6831 1.78145 21.5084 2.54119C21.3425 3.2922 21.1417 3.99517 20.9059 4.65012C20.6701 5.29633 20.3994 5.86832 20.0938 6.36608C20.0064 6.27875 19.8842 6.17396 19.727 6.05171C19.5698 5.92945 19.4082 5.81156 19.2423 5.69804C19.0764 5.57578 18.9323 5.47972 18.8101 5.40986C19.107 4.99069 19.3559 4.49293 19.5567 3.91658C19.7663 3.34023 19.9366 2.72021 20.0676 2.05653C20.2073 1.38412 20.3164 0.69861 20.395 0ZM23.9317 2.34471H24.1544L24.4033 2.27921L25.4774 2.58049C25.3988 3.00839 25.3028 3.44939 25.1892 3.90348C25.0845 4.35758 24.9709 4.79421 24.8487 5.21337C24.7351 5.63254 24.6216 6.00368 24.5081 6.32678L23.2375 5.94691C23.3248 5.65874 23.4122 5.32253 23.4995 4.9383C23.5868 4.55406 23.6654 4.15673 23.7353 3.74629C23.8139 3.33586 23.8794 2.94726 23.9317 2.58049V2.34471Z\" fill=\"currentColor\"/></svg>","payTC":"<svg class=\"lv-svg\" aria-hidden=\"true\" focusable=\"false\" viewBox=\"0 0 26 13\" fill=\"none\" xmlns=\"http://www.w3.org/2000/svg\"><path d=\"M4.25715 2.81627H12.3392V4.40124H4.25715V2.81627ZM9.26094 0.130989H10.8852V10.3744C10.8852 10.8808 10.8197 11.252 10.6887 11.4878C10.5665 11.7323 10.3438 11.9157 10.0207 12.0379C9.70631 12.1514 9.29151 12.2257 8.77628 12.2606C8.26979 12.2955 7.65414 12.3086 6.92933 12.2999C6.91187 12.1427 6.86821 11.9724 6.79835 11.789C6.73722 11.6057 6.66299 11.4179 6.57566 11.2258C6.49707 11.0337 6.41411 10.8721 6.32678 10.7411C6.66736 10.7499 7.00793 10.7586 7.3485 10.7673C7.69781 10.7761 8.00345 10.7804 8.26542 10.7804C8.5274 10.7717 8.71079 10.7673 8.81558 10.7673C8.9815 10.7673 9.09503 10.7368 9.15615 10.6756C9.22601 10.6145 9.26094 10.5141 9.26094 10.3744V0.130989ZM4.8466 5.98621L6.23509 5.34436C6.43594 5.65874 6.64989 6.00368 6.87694 6.37918C7.10399 6.74595 7.3223 7.10835 7.53189 7.46639C7.74147 7.8157 7.90739 8.12134 8.02964 8.38332L6.53637 9.15615C6.43158 8.87671 6.28312 8.55797 6.091 8.19993C5.89889 7.84189 5.69367 7.46639 5.47535 7.07342C5.25704 6.68046 5.04746 6.31805 4.8466 5.98621ZM1.84695 3.82489L3.41882 2.25302L3.44502 2.26612V12.2606H1.84695V3.82489ZM3.14374 0.0523958L4.70252 0.537056C4.40561 1.29679 4.0563 2.05653 3.6546 2.81627C3.2529 3.57601 2.82064 4.29208 2.35781 4.9645C1.89498 5.63691 1.41468 6.22199 0.916925 6.71975C0.864529 6.58876 0.78157 6.41848 0.668046 6.20889C0.563254 5.99931 0.44973 5.79409 0.327473 5.59324C0.205217 5.38366 0.0960588 5.21337 0 5.08239C0.419166 4.68068 0.825233 4.21349 1.2182 3.6808C1.61117 3.13938 1.97357 2.55866 2.30541 1.93864C2.63725 1.31863 2.9167 0.689877 3.14374 0.0523958Z\" fill=\"currentColor\"/><path d=\"M21.3513 4.63702H22.8445V5.29197C22.8445 5.76353 22.814 6.29185 22.7528 6.87694C22.7004 7.45329 22.5869 8.06021 22.4123 8.69769C22.2376 9.32644 21.9713 9.95082 21.6132 10.5708C21.2552 11.1909 20.7749 11.7759 20.1724 12.3261C20.085 12.2126 19.9715 12.0859 19.8318 11.9462C19.7008 11.8152 19.5567 11.6842 19.3995 11.5533C19.2511 11.431 19.1113 11.3306 18.9804 11.252C19.5305 10.7804 19.9628 10.2827 20.2771 9.7587C20.6003 9.22601 20.836 8.69332 20.9845 8.16063C21.1329 7.61921 21.229 7.09962 21.2727 6.60186C21.3251 6.1041 21.3513 5.65437 21.3513 5.25267V4.63702ZM22.7397 6.22199C22.8795 6.90314 23.0716 7.55372 23.3161 8.17373C23.5606 8.78502 23.8706 9.3308 24.2461 9.8111C24.6216 10.2827 25.0757 10.6538 25.6084 10.9245C25.4862 11.0293 25.3595 11.1559 25.2285 11.3044C25.0976 11.4616 24.9709 11.6231 24.8487 11.789C24.7264 11.955 24.626 12.1121 24.5474 12.2606C23.971 11.8938 23.482 11.4223 23.0803 10.8459C22.6873 10.2696 22.3642 9.61025 22.111 8.86798C21.8577 8.11697 21.6482 7.3092 21.4822 6.44467L22.7397 6.22199ZM13.3216 1.03482H19.465V2.31851H13.3216V1.03482ZM13.1382 6.74595H19.6222V8.02964H13.1382V6.74595ZM13.6491 2.97346H19.1768V4.24405H13.6491V2.97346ZM13.7277 4.8597H19.0982V6.1303H13.7277V4.8597ZM15.6794 0.0654946H17.1465V3.81179H15.6794V0.0654946ZM13.9766 8.27852L15.2603 8.5798C15.1293 9.06009 14.9677 9.55785 14.7756 10.0731C14.5835 10.5796 14.3957 11.0118 14.2123 11.3699C14.0726 11.2825 13.8761 11.1865 13.6229 11.0817C13.3784 10.9769 13.1732 10.8983 13.0072 10.8459C13.1994 10.5053 13.3827 10.1036 13.5574 9.64081C13.732 9.16925 13.8718 8.71516 13.9766 8.27852ZM17.5264 8.71079L18.6922 8.25233C18.8057 8.47064 18.9149 8.70206 19.0196 8.94657C19.1332 9.18235 19.238 9.41813 19.334 9.65391C19.4301 9.88969 19.4999 10.0993 19.5436 10.2827L18.3123 10.8066C18.2686 10.6232 18.2031 10.4137 18.1158 10.1779C18.0285 9.93336 17.9324 9.68448 17.8276 9.43123C17.7316 9.16925 17.6312 8.9291 17.5264 8.71079ZM20.6439 2.34471H24.3378V3.77249H20.6439V2.34471ZM20.395 0L21.9276 0.209583C21.8228 1.00425 21.6831 1.78145 21.5084 2.54119C21.3425 3.2922 21.1417 3.99517 20.9059 4.65012C20.6701 5.29633 20.3994 5.86832 20.0938 6.36608C20.0064 6.27875 19.8842 6.17396 19.727 6.05171C19.5698 5.92945 19.4082 5.81156 19.2423 5.69804C19.0764 5.57578 18.9323 5.47972 18.8101 5.40986C19.107 4.99069 19.3559 4.49293 19.5567 3.91658C19.7663 3.34023 19.9366 2.72021 20.0676 2.05653C20.2073 1.38412 20.3164 0.69861 20.395 0ZM23.9317 2.34471H24.1544L24.4033 2.29231L25.4774 2.58049C25.3988 3.01712 25.3028 3.46248 25.1892 3.91658C25.0845 4.37068 24.9709 4.80731 24.8487 5.22647C24.7351 5.64564 24.6216 6.01241 24.5081 6.32678L23.2375 5.94691C23.3248 5.65874 23.4122 5.32253 23.4995 4.9383C23.5868 4.55406 23.6654 4.16109 23.7353 3.75939C23.8139 3.34896 23.8794 2.95599 23.9317 2.58049V2.34471ZM15.6925 7.26991H17.1727V12.2737H15.6925V7.26991Z\" fill=\"currentColor\"/></svg>","payKO":"<svg class=\"lv-svg\" aria-hidden=\"true\" focusable=\"false\" viewBox=\"0 0 44 12\" fill=\"none\" xmlns=\"http://www.w3.org/2000/svg\"><path d=\"M9.67069 0V5.8587H8.04612V4.96327H5.3854V3.72245H8.04612V2.6991H5.51332C4.79058 4.45159 3.12763 5.57088 0.550053 6.12733L0 4.79697C2.66712 4.26611 3.90154 3.166 4.119 1.76529H0.652388V0.447717H5.92266C5.92266 0.799495 5.89708 1.13848 5.84591 1.45828H8.04612V0H9.67069ZM9.67069 6.28083V9.46602H3.58174V10.2335H9.92653V11.5255H1.94437V8.26358H8.03333V7.56003H1.93158V6.28083H9.67069Z\" fill=\"currentColor\"/><path d=\"M21.2474 0V11.6407H19.6996V0H21.2474ZM18.8681 0.191879V11.1034H17.3331V5.30865H15.798V3.99108H17.3331V0.191879H18.8681ZM14.8642 3.12123C14.8642 5.05281 15.4654 7.00997 17.1668 7.98216L16.2074 9.1846C15.1712 8.57059 14.4869 7.52805 14.0967 6.28083C13.6938 7.63678 12.9902 8.78805 11.9221 9.44044L10.9371 8.238C12.6512 7.18906 13.2908 5.09119 13.2908 3.12123V2.49443H11.3848V1.18965H16.6295V2.49443H14.8642V3.12123Z\" fill=\"currentColor\"/><path d=\"M31.6856 0V4.55393H33.3997V5.89708H31.6856V11.6407H30.0738V0H31.6856ZM29.2807 1.7397V3.04448H22.437V1.7397H25.0722V0.179087H26.7095V1.7397H29.2807ZM25.8909 3.69687C27.5922 3.69687 28.8586 4.84814 28.8586 6.47271C28.8586 8.09729 27.5922 9.24856 25.8909 9.24856C24.1767 9.24856 22.9103 8.09729 22.9103 6.47271C22.9103 4.84814 24.1767 3.69687 25.8909 3.69687ZM25.8909 5.01443C25.0722 5.02723 24.471 5.57728 24.471 6.47271C24.471 7.38094 25.0722 7.9182 25.8909 7.90541C26.7095 7.9182 27.298 7.38094 27.298 6.47271C27.298 5.57728 26.7095 5.02723 25.8909 5.01443Z\" fill=\"currentColor\"/><path d=\"M43.6077 0V11.6407H41.9575V0H43.6077ZM40.1155 1.21523C40.1155 4.7458 38.8747 7.67515 34.7173 9.64511L33.8602 8.34033C36.8663 6.92043 38.1903 5.07839 38.4525 2.49443H34.487V1.21523H40.1155Z\" fill=\"currentColor\"/></svg>","payEN":"<svg class=\"lv-svg\" aria-hidden=\"true\" focusable=\"false\" viewBox=\"0 0 51 12\" fill=\"none\" xmlns=\"http://www.w3.org/2000/svg\"><path d=\"M0 0H3.62011C4.31088 0 4.9057 0.132183 5.40459 0.39655C5.90774 0.656652 6.28936 1.02335 6.54947 1.49666C6.80957 1.96996 6.93962 2.51361 6.93962 3.12763C6.93962 3.7459 6.8053 4.28956 6.53667 4.7586C6.27231 5.22337 5.88642 5.58794 5.379 5.85231C4.87585 6.11241 4.27463 6.24246 3.57534 6.24246H1.24721V4.69464H3.27473C3.6457 4.69464 3.95697 4.63068 4.20854 4.50276C4.46438 4.37057 4.65413 4.18722 4.77778 3.9527C4.90144 3.71819 4.96327 3.44316 4.96327 3.12763C4.96327 2.81209 4.90144 2.5392 4.77778 2.30894C4.65413 2.07442 4.46438 1.89534 4.20854 1.77168C3.95697 1.64376 3.64357 1.5798 3.26834 1.5798H1.91879V9.26135H0V0Z\" fill=\"currentColor\"/><path d=\"M12.0244 6.26165C11.8538 6.26591 11.5532 6.28297 11.1226 6.31281L10.5086 6.36398C10.1717 6.38957 9.90735 6.48124 9.71547 6.63901C9.52359 6.79251 9.42765 7.00145 9.42765 7.26581C9.42765 7.43637 9.47029 7.58135 9.55557 7.70074C9.64511 7.82013 9.76877 7.91181 9.92653 7.97576C10.0886 8.03972 10.2698 8.0717 10.4702 8.0717C10.7559 8.0717 11.0096 8.01627 11.2313 7.90541C11.453 7.79028 11.6257 7.63465 11.7494 7.4385C11.873 7.2381 11.9349 7.0185 11.9349 6.77972L11.9221 4.53474C11.9221 4.33859 11.8794 4.1723 11.7942 4.03585C11.7131 3.89514 11.5874 3.79067 11.4168 3.72245C11.2505 3.64996 11.0522 3.61372 10.822 3.61372C10.5022 3.61372 10.2421 3.68194 10.0417 3.81839C9.84125 3.95057 9.71547 4.13819 9.6643 4.38123H7.86064C7.90328 3.97189 8.04612 3.60519 8.28917 3.28113C8.53648 2.9528 8.8776 2.69483 9.31252 2.50722C9.75171 2.3196 10.2698 2.22579 10.8667 2.22579C11.404 2.22579 11.8944 2.30894 12.3378 2.47524C12.7813 2.64153 13.1373 2.90163 13.4059 3.25554C13.6788 3.60519 13.8153 4.04651 13.8153 4.57951V9.26135H12.018V8.30196H11.9668C11.8517 8.51942 11.7003 8.70917 11.5127 8.8712C11.3251 9.03323 11.0991 9.16115 10.8348 9.25496C10.5747 9.3445 10.2719 9.38927 9.92653 9.38927C9.47882 9.38927 9.08227 9.31039 8.73688 9.15262C8.3915 8.99485 8.11861 8.76034 7.9182 8.44907C7.71779 8.1378 7.61759 7.76257 7.61759 7.32338C7.61759 6.5985 7.85637 6.0719 8.33394 5.74357C8.81577 5.41525 9.43831 5.22763 10.2016 5.18073C10.3295 5.16794 10.7239 5.14662 11.3848 5.11677L12.0116 5.09119L12.0244 6.26165Z\" fill=\"currentColor\"/><path d=\"M16.1114 11.8709C15.7405 11.8709 15.4207 11.8602 15.152 11.8389V10.3615L15.4718 10.3806C15.5998 10.3849 15.749 10.387 15.9195 10.387C16.0731 10.387 16.201 10.3743 16.3033 10.3487C16.4056 10.3231 16.5016 10.2634 16.5911 10.1696C16.6807 10.0758 16.7596 9.93506 16.8278 9.74745L16.9429 9.45963L14.4421 2.31534H16.4376L17.8959 7.43211H17.9727L19.4373 2.31534H21.4457L18.7338 10.0225C18.5248 10.6109 18.2114 11.065 17.7936 11.3848C17.3757 11.7089 16.815 11.8709 16.1114 11.8709Z\" fill=\"currentColor\"/><path d=\"M27.3044 9.26135H25.4112V2.31534H27.2148V3.53057H27.2916C27.4536 3.12123 27.7137 2.80143 28.0719 2.57118C28.4343 2.34092 28.8714 2.22579 29.383 2.22579C29.8649 2.22579 30.2849 2.33026 30.6431 2.5392C31.0012 2.74813 31.2784 3.04874 31.4745 3.44103C31.6749 3.83331 31.7751 4.29809 31.7751 4.83535V9.26135H29.8819V5.16154C29.8819 4.87585 29.8329 4.63281 29.7348 4.4324C29.641 4.22773 29.5003 4.0721 29.3127 3.9655C29.1251 3.85463 28.8991 3.7992 28.6347 3.7992C28.3704 3.7992 28.138 3.85677 27.9376 3.97189C27.7372 4.08276 27.5815 4.24692 27.4707 4.46438C27.3598 4.67758 27.3044 4.93555 27.3044 5.23829V9.26135Z\" fill=\"currentColor\"/><path d=\"M36.3674 9.39567C35.6767 9.39567 35.0733 9.24643 34.5574 8.94795C34.0414 8.64947 33.6449 8.22947 33.3677 7.68795C33.0906 7.14642 32.952 6.52175 32.952 5.81393C32.952 5.09758 33.0906 4.47078 33.3677 3.93352C33.6449 3.39199 34.0414 2.97199 34.5574 2.67351C35.0733 2.37503 35.6767 2.22579 36.3674 2.22579C37.0539 2.22579 37.6552 2.37503 38.1711 2.67351C38.6913 2.97199 39.0879 3.39199 39.3608 3.93352C39.6336 4.47078 39.7701 5.09758 39.7701 5.81393C39.7701 6.52175 39.6336 7.14642 39.3608 7.68795C39.0879 8.22947 38.6913 8.64947 38.1711 8.94795C37.6552 9.24643 37.0539 9.39567 36.3674 9.39567ZM36.3802 7.93099C36.6958 7.93099 36.9623 7.83932 37.1797 7.65597C37.4015 7.47262 37.5678 7.22104 37.6786 6.90124C37.7895 6.57718 37.8449 6.21048 37.8449 5.80114C37.8449 5.38753 37.7895 5.02083 37.6786 4.70103C37.5678 4.38123 37.4015 4.12966 37.1797 3.94631C36.9623 3.76296 36.6958 3.67128 36.3802 3.67128C36.0562 3.67128 35.7811 3.76296 35.5552 3.94631C35.3292 4.12966 35.1586 4.38123 35.0435 4.70103C34.9283 5.01657 34.8708 5.38327 34.8708 5.80114C34.8708 6.21474 34.9283 6.58145 35.0435 6.90124C35.1586 7.22104 35.3292 7.47262 35.5552 7.65597C35.7811 7.83932 36.0562 7.93099 36.3802 7.93099Z\" fill=\"currentColor\"/><path d=\"M40.2754 2.31534H42.1942L43.2815 7.00997H43.3454L44.4839 2.31534H46.3643L47.522 6.97799H47.586L48.6541 2.31534H50.5665L48.6733 9.26135H46.6713L45.4625 4.85454H45.3794L44.1705 9.26135H42.175L40.2754 2.31534Z\" fill=\"currentColor\"/></svg>"};
+// 트랙 언어명에 SVG 채우기
+document.querySelectorAll('.ltrack .lv').forEach(i=>{i.innerHTML=LV_SVG[i.className.match(/lv-([a-z]+)$/)[1]];});
+// 버튼 문구도 아웃라인 벡터: 트랙 순서(번체 · 한국어 · 영어 · 일본어 · 간체)와 같은 순서
+const PAY_K=['tc','ko','en','ja','sc'];
+function setPayLabel(lbl,i){const k=PAY_K[i%5];lbl.innerHTML=`<i class="lv lv-pay-${k}" role="img" aria-label="${LANGS[i]}">${LV_SVG['pay'+k.toUpperCase()]}</i>`;}
+/* 터치 대기 중 반복 모션: 6번 언어 롤링, 7번 PayPal 옮기기 */
+const IDLE={
+  async 6(el,on){
+    const tr=el.querySelector('.ltrack'),items=[...tr.children],lbl=el.querySelector('.pbtn .ln>span');
+    const go=(i)=>{items.forEach((s,j)=>s.classList.toggle('on',j===i));return `translateX(${-(i*LW+LW/2)}px)`;};
+    let cur=el._lcur??1;
+    while(on()){
+      const from=`translateX(${-(cur*LW+LW/2)}px)`,nx=cur+1,to=go(nx);A(tr,[{transform:from},{transform:to}],500,0,'move');
+      lbl.getAnimations().forEach(a=>a.cancel());setPayLabel(lbl,nx);A(lbl,REV,300);cur=nx;
+      await wait(500);
+      // 트랙 끝에 가까워지면 같은 언어가 있는 앞쪽 칸으로 티 안 나게 점프 → 끝없이 순환
+      if(cur>=1+LANG_N){tr.getAnimations().forEach(a=>a.cancel());tr.classList.add('nojump');tr.style.transform=go(cur-LANG_N);void tr.offsetWidth;tr.classList.remove('nojump');cur-=LANG_N;}
+      el._lcur=cur;
+      await wait(1200);if(!on())return;
+    }
+  },
+  async 7(el,on){
+    const g=el.querySelector('.b-g'),ap=el.querySelector('.b-a'),pp=el.querySelector('.pp'),h=el.querySelector('.hand');
+    while(on()){
+      await wait(1200);if(!on())return;
+      // 초기 배치로 페이드 리셋 후 다시 옮기기
+      [g,ap,pp].forEach(b=>A(b,[{opacity:1},{opacity:0}],250,0,'out'));await wait(300);if(!on())return;
+      [g,ap,pp,h].forEach(b=>b.getAnimations().forEach(a=>a.cancel()));HIDE(h);
+      [g,ap,pp].forEach(b=>A(b,[{opacity:0},{opacity:1}],350,0,'decel'));await wait(600);if(!on())return;
+      await drag7(el,on);
+    }
+  }
+};
+async function drag7(el,alive){
+    const g=el.querySelector('.b-g'),ap=el.querySelector('.b-a'),pp=el.querySelector('.pp'),h=el.querySelector('.hand');
+    // 터치 원 등장 → 꾹 누름 → 들림(확대+그림자) → 수직으로만 맨 위 슬롯까지 이동, 나머지는 한 칸(40px)씩 아래로 → 내려놓으면 그림자 사라짐
+    const SH0='0 0 0 rgba(23,54,76,0)',SH1='0 10px 24px rgba(23,54,76,.18)';
+    A(h,[{opacity:0,transform:'scale(1.4)'},{opacity:1,transform:'scale(1)'}],300,0,'decel');await wait(400);
+    A(h,[{opacity:1,transform:'scale(1)'},{opacity:1,transform:'scale(.85)'}],150);A(pp,[{transform:'scale(1)'},{transform:'scale(.97)'}],150);await wait(150);
+    A(pp,[{transform:'scale(.97)',boxShadow:SH0},{transform:'scale(1.05)',boxShadow:SH1}],250,0,'decel');await wait(250);
+    A(pp,[{transform:'translateY(0) scale(1.05)',boxShadow:SH1},{transform:'translateY(-80px) scale(1.05)',boxShadow:SH1}],800,0,'move');
+    A(h,[{opacity:1,transform:'translateY(0) scale(.85)'},{opacity:1,transform:'translateY(-80px) scale(.85)'}],800,0,'move');
+    [g,ap].forEach((b,i)=>A(b,[{transform:'translateY(0)'},{transform:'translateY(40px)'}],600,120+i*60,'move'));
+    await wait(820);if(!alive())return;
+    A(pp,[{transform:'translateY(-80px) scale(1.05)',boxShadow:SH1},{transform:'translateY(-80px) scale(1)',boxShadow:SH0}],300,0,'move');
+    A(h,[{opacity:1,transform:'translateY(-80px) scale(.85)'},{opacity:0,transform:'translateY(-80px) scale(1.2)'}],300,0,'out');
+    await wait(500);
+}
+const FLOW=[
+  {from:'1',to:'2',type:'seam',label:'1 → 2 심리스'},
+  {from:'2',to:'3',type:'seam',label:'2 → 3 심리스'},
+  {from:'3',to:'3',type:'inner',label:'3 → 4 카피 이동 + 목업 업'},
+  {from:'3',to:'5',type:'zoom',focus:()=>q('3','.phone'),label:'4 → 5 줌인'},
+  {from:'5',to:'6',type:'seam',label:'5 → 6 심리스'},
+  {from:'6',to:'7',type:'seam',label:'6 → 7 심리스'},
+  {from:'7',to:'8',type:'shared',label:'7 → 8 공유 요소'},
+  {from:'8',to:'1',type:'white',label:'8 → 9 → 1 화이트 페이드'}
+];
+const TYPE_NAME={seam:'심리스 트랜지션',zoom:'줌인 트랜지션',inner:'카피가 4번 위치로 이동하며 목업 등장',shared:'공유 요소 전환',white:'화이트 페이드'};
+let flowGen=0;
+function clearScene(k){const e=SC[k];e.classList.remove('cur');e.style.zIndex='';e.style.transformOrigin='';e.getAnimations({subtree:true}).forEach(a=>a.cancel());}
+function clearAll(){Object.keys(SC).forEach(clearScene);white.getAnimations().forEach(a=>a.cancel());dev.querySelectorAll('.fly').forEach(c=>c.remove());q('7','.pp').style.visibility='';q('8','.pp8').style.visibility='';}
+let CUR='1';
+function showScene(k,z=1){const e=SC[k];e.classList.add('cur');e.style.zIndex=z;CUR=k;}
+function setNow(txt,sub){nowEl.textContent=txt;if(sub){const s=document.createElement('small');s.textContent=sub;nowEl.append(s);}}
+function rel(node){const d=dev.getBoundingClientRect(),r=node.getBoundingClientRect();return {x:r.left-d.left,y:r.top-d.top,w:r.width,h:r.height};}
+
+async function transition(tr,alive){
+  const from=SC[tr.from],to=SC[tr.to];
+  if(tr.type==='inner'){
+    /* Figma 4: 16px/22.4 → 14.58px/17.45 (줄 중심 138.2·160.6·183 → 142.7·160.2·177.6); the phone rises over it */
+    A(q('3','.t'),[{transform:'translateY(0) scale(1)'},{transform:'translateY(2.6px) scale(.911)'}],900,0,'move');
+    const ls=q('3','.t').querySelectorAll('.ln');
+    A(ls[0],[{transform:'translateY(0)'},{transform:'translateY(3.2px)'}],900,0,'move');A(ls[2],[{transform:'translateY(0)'},{transform:'translateY(-3.3px)'}],900,0,'move');
+    settle(A(q('3','.phone'),[{transform:'translateY(300px)'},{transform:'translateY(0)'}],900,0,'decel')); // 다 올라오면 고정 (목업 전체가 따로 떼어 그려지지 않게)
+    // EN 문구는 KR보다 길어서 목업 양옆으로 삐져나옴 → EN일 때만 목업이 다 올라오기 전에 뒤 문구가 살짝 흐려지며 사라짐 (KR은 목업이 다 가려서 Figma 그대로)
+    if(LANG==='en')[q('3','.sub'),q('3','.t')].forEach(e=>A(e,[{opacity:1,filter:'blur(0px)'},{opacity:0,filter:'blur(3px)'}],450,0,'move'));
+    await wait(1100);return;}
+  if(tr.type==='seam'){
+    /* text swaps in place: old text slides down out of its mask, new text reveals from the top at its own spot */
+    const TOUT=[{transform:'translateY(0)',opacity:1},{transform:'translateY(100%)',opacity:0}];
+    let i=0;from.querySelectorAll('.t,.sub,.foot').forEach(h=>leavesOf(h).forEach(l=>A(l,TOUT,400,Math.min(12*i++,300),'out')));
+    [...from.querySelector('.cv').children].filter(c=>!c.matches('.t,.sub,.foot')).forEach(c=>A(c,[{transform:'translateY(0)',opacity:1},{transform:'translateY(24px)',opacity:0}],400,0,'out'));
+    await wait(300);if(!alive())return;
+    showScene(tr.to,2);const p=ENTER[tr.to](to,alive);
+    await wait(Math.min(12*i,300)+150);clearScene(tr.from);await p;return;
+  }
+  if(tr.type==='zoom'){
+    const r=rel(tr.focus()),fx=r.x+r.w/2,fy=r.y+r.h/2;
+    from.style.transformOrigin=`${fx}px ${fy}px`;
+    A(from,[{transform:'scale(1)',opacity:1,filter:'blur(0px)'},{transform:'scale(1.45)',opacity:0,filter:'blur(4px)'}],750,0,'accel');
+    await wait(450);if(!alive())return;
+    showScene(tr.to,2);to.style.transformOrigin=`${fx}px ${fy}px`;
+    A(to,[{transform:'scale(.88)',opacity:0},{transform:'scale(1)',opacity:1}],900,0,'decel');
+    const p=ENTER[tr.to](to,alive);await wait(350);clearScene(tr.from);await p;return;
+  }
+  if(tr.type==='shared'){
+    const pp7=q('7','.pp'),pp8=q('8','.pp8');
+    const s=rel(pp7),kx=s.w/134;
+    showScene('8',2);pp8.style.visibility='hidden';const b=rel(pp8),k=b.w/169;
+    A(to,[{opacity:0},{opacity:1}],400,0,'move');
+    const p=ENTER[8](to,alive,true);
+    // 날아가는 버튼은 7번 · 8번과 같은 PayPal 로고, 로고는 버튼 높이의 32.35%로 비율 유지 → 도착하면 8번 버튼과 픽셀까지 같음
+    const fly=document.createElement('div');fly.className='fly';const lg=document.createElement('div');lg.className='lg';const li=document.createElement('img');li.src='assets/pp.png';li.alt='';lg.appendChild(li);fly.appendChild(lg);dev.appendChild(fly);
+    pp7.style.visibility='hidden';
+    A(fly,[{left:s.x+'px',top:s.y+'px',width:s.w+'px',height:s.h+'px',borderRadius:s.h/2+'px'},
+           {left:b.x+'px',top:b.y+'px',width:b.w+'px',height:b.h+'px',borderRadius:5*k+'px'}],800,100,'move');
+    // 도착 순간 날아온 버튼을 8번 버튼으로 그대로 바꿔치기 (모양이 같아 페이드 없이 이어짐)
+    await wait(900);if(!alive())return;
+    pp8.style.visibility='';fly.remove();pp7.style.visibility='';clearScene('7');
+    await p;return;
+  }
+  if(tr.type==='white'){
+    A(white,[{opacity:0},{opacity:1}],600,0,'move');await wait(900);if(!alive())return;
+    clearScene(tr.from);showScene(tr.to);A(white,[{opacity:1},{opacity:0}],500,0,'move');
+    await ENTER[tr.to](to,alive);white.getAnimations().forEach(a=>a.cancel());
+  }
+}
+/* 넘김 규칙: 3→4 자동 · 4 목업 속 영상이 끝나면 자동 · 7 PayPal 옮기기 끝나면 자동 · 1 · 2 · 5 · 6 화면 터치 · 8 [체험 완료] 터치 · 9 자동 */
+const VIDEO4_MS=5000; // 4번 목업 속 결제창 영상 길이 (실제 영상 길이로 교체, 데모는 5초 가정)
+let tapWaiter=null;
+const waitTap=()=>new Promise(r=>{tapWaiter=r;});
+function tap(where){if(!tapWaiter)return;const need=CUR==='8'?'done':CUR==='6'?'pay':'screen';if(where!==need)return;const r=tapWaiter;tapWaiter=null;r();}
+const SCENE_OF=k=>k===3?'3':FLOW[k].from;
+// 4번 목업 속 결제 프로토타입 (퍼즐 프로젝트 스토리보드 1~6): 스켈레톤 → 간편결제 탭 → 한국 탭(목록 스크롤) → 결제수단 선택(아래서 CTA) → 약관 체크 → [결제하기] → 결제 진행 중(점 3개) → 결제 성공(체크) → 흰색으로 페이드아웃
+const P4K={tab:[63,97.1],kr:[16.48,163.98],tile:[51.05,164.14],chk:[9.69,227.79],pay:[63,245.56],load5:[54.92,104.05],load6:[54.76,72.38],scroll:66.23};
+// EN 모드: 퍼즐 프로젝트 EN 화면(1·2·5·6-EN + 2-EN 기반 스크롤 전/목록/CTA/체크). 구조 · 스크롤(205) · 카카오페이 위치는 KR과 같고, 글자가 길어 두 줄이 된 South Korea 탭 위치만 다름
+const P4E={tab:[63,97.26],kr:[16.48,174.15],tile:[51.05,164.14],chk:[9.69,227.79],pay:[63,245.56],load5:[54.92,104.05],load6:[54.76,72.38],scroll:66.23};
+let P4=P4K;
+// 언어에 맞는 화면 이미지로 교체 (KR: sb*.png / EN: sb*-en.png)
+function setP4Lang(el){const en=LANG==='en';P4=en?P4E:P4K;const sx=en?'-en':'';
+  [['.ph-scr>img.s1','sb1'],['.ph-scr>img.s2','sb2'],['.ph-scr>img.side','sb3'],['.ph-scr>img.s3','sb3'],['.p4-sheet>img.s3','sb3'],['.p4-sheet>img.s4','sb4'],['.p4-btn img','sb4'],['.p4-scroll img','sb-list'],['.ph-scr>img.s5','sb5'],['.p4-g6 img','sb6']]
+  .forEach(([q,n])=>{const i=el.querySelector(q);const src='assets/'+n+sx+'.png';if(i&&!i.src.endsWith(src))i.src=src;});}
+// 4K용 큰 화면 이미지는 페이지를 열자마자 미리 받아 둠 (KR · EN 모두)
+['','-en'].forEach(sx=>{[1,2,3,4,5,6].forEach(n=>{new Image().src='assets/sb'+n+sx+'.png';});new Image().src='assets/sb-list'+sx+'.png';});
+// 목업 속 화면 이미지가 다 받아지고 그릴 준비가 될 때까지 기다림 (덜 받아진 채로 시퀀스가 먼저 지나가지 않게)
+const p4Ready=el=>Promise.all([...el.querySelectorAll('.ph-scr img')].map(i=>i.decode?i.decode().catch(()=>{}):Promise.resolve()));
+// 애니메이션이 끝나면 최종 값을 인라인 스타일로 고정하고 애니메이션은 지움 → 끝난 뒤에도 따로 떼어 그려지지 않아 모든 화면이 같은 선명도로 보임
+const SETTLED=[];
+function settle(a){const el=a.effect.target;const props=[...new Set(a.effect.getKeyframes().flatMap(k=>Object.keys(k)).filter(p=>!['offset','easing','composite','computedOffset'].includes(p)))].map(p=>p.replace(/[A-Z]/g,m=>'-'+m.toLowerCase()));
+  a.finished.then(()=>{props.forEach(p=>SETTLED.push([el,p,el.style.getPropertyValue(p)]));a.commitStyles();a.cancel();}).catch(()=>{});return a;}
+function unsettle(){while(SETTLED.length){const [el,p,v]=SETTLED.pop();if(v)el.style.setProperty(p,v);else el.style.removeProperty(p);}}
+async function proto4(el,alive){
+  unsettle();setP4Lang(el);await p4Ready(el);if(!alive())return;const A2=(...x)=>settle(A(...x));
+  const q4=c=>el.querySelector(c),sk=q4('.p4-skel'),h=q4('.p4-hand'),sheet=q4('.p4-sheet'),ld=q4('.p4-load'),ok=q4('.p4-ok'),ck=ok.querySelector('path');
+  // 스켈레톤: 블록이 은은하게 숨쉬듯 옅어졌다 돌아옴 (배경 영역 제외)
+  const pulse=[...sk.querySelectorAll('i')].filter(b=>b.style.zIndex!=='-1'&&!b.classList.contains('sk-shine')).map(b=>b.animate([{opacity:1},{opacity:.55},{opacity:1}],{duration:1400,iterations:Infinity,easing:'ease-in-out'}));
+  const pos=([x,y])=>({left:x+'px',top:y+'px'});let cur;
+  const show=(e,d=200)=>A2(e,[{opacity:0},{opacity:1}],d,0,'move');
+  const moveTo=async(pt,d=600)=>{A2(h,[{...pos(cur),opacity:1},{...pos(pt),opacity:1}],d,0,'move');cur=pt;await wait(d+80);};
+  const press=async fn=>{A2(h,[{...pos(cur),opacity:1,transform:'scale(1)'},{...pos(cur),opacity:1,transform:'scale(.8)'}],130);if(fn)fn();await wait(160);A2(h,[{...pos(cur),opacity:1,transform:'scale(.8)'},{...pos(cur),opacity:1,transform:'scale(1)'}],160,0,'decel');await wait(200);};
+  // 1. 처음 화면(신용카드): 카드 목록 자리는 스켈레톤, 빛이 지나가다 목록이 나타남
+  await wait(1400);if(!alive())return;A2(sk,[{opacity:1},{opacity:0}],350,0,'move');await wait(600);pulse.forEach(a=>a.cancel());if(!alive())return; // 스켈레톤이 사라지면 깜빡임도 멈춤
+  // 2. 터치 원 등장 → [간편결제] 탭 → 2번 화면
+  cur=P4.tab;A2(h,[{...pos(cur),opacity:0,transform:'scale(1.5)'},{...pos(cur),opacity:1,transform:'scale(1)'}],280,0,'decel');await wait(380);
+  await press(()=>show(q4('img.s2'),250));await wait(300);if(!alive())return;
+  // 2-1. 끌고 가서 좌측 [한국] 탭 → 탭 강조가 한국으로, 우측 목록이 한국 쪽으로 스르륵 스크롤
+  await moveTo(P4.kr,550);const scr=q4('.p4-scroll');
+  // 누르는 순간 바로 스크롤 시작 (빠르게 출발해 부드럽게 멈춤), 한국 아래로 인도네시아가 이어서 보임
+  // 스크롤은 transform 대신 top으로: 멈춘 뒤 다른 화면과 같은 선명도로 그려지게
+  await press(()=>{show(q4('img.side'),200);A2(scr,[{opacity:1},{opacity:1}],1);A2(scr.firstElementChild,[{top:'0px'},{top:-P4.scroll+'px'}],700,0,'in');});
+  await wait(600);if(!alive())return;
+  // 3. 끌고 가서 결제수단(한국 첫 번째, 카카오페이) 선택 → 파란 테두리, 아래에서 위로 CTA 시트가 올라옴
+  await moveTo(P4.tile);await press(()=>show(q4('.ph-scr>img.s3'),150));
+  A2(sheet,[{transform:'translateY(42px)'},{transform:'translateY(0)'}],450,0,'decel');await wait(550);if(!alive())return;
+  // 4. 끌고 가서 약관 체크박스 체크 → 4번
+  await moveTo(P4.chk,650);await press(()=>show(sheet.querySelector('img.s4'),150));await wait(150);if(!alive())return;
+  // 5. 끌고 가서 [결제하기] → 결제 진행 중 (점 3개가 한동안 튀어 오름)
+  await moveTo(P4.pay,500);await press(()=>A2(q4('.p4-btn .in'),[{transform:'scale(1)'},{transform:'scale(.96)'},{transform:'scale(1)'}],300,0,'move'));
+  A2(h,[{...pos(cur),opacity:1},{...pos(cur),opacity:0}],200,0,'out');
+  show(q4('img.s5'),300);A2(ld,[{...pos(P4.load5),opacity:0},{...pos(P4.load5),opacity:1}],300,0,'move');
+  const dots=[...ld.querySelectorAll('i')];dots.forEach((d,i)=>d.animate([{transform:'translateY(0)'},{transform:'translateY(-1.62px)',offset:.25},{transform:'translateY(0)',offset:.5},{transform:'translateY(0)'}],{duration:900,delay:i*150,iterations:Infinity,easing:'ease-in-out'}));
+  await wait(2400);if(!alive())return;
+  // 6. 결제 성공: 화면 교차 페이드, 로딩 원은 제자리에서 사라지고 체크 원은 6번 자리에서 나타남 (공유 요소 아님)
+  Object.assign(ok.style,pos(P4.load6));A2(ld,[{...pos(P4.load5),opacity:1},{...pos(P4.load5),opacity:0}],180,0,'out');show(q4('.p4-g6'),400); // 로딩 원이 먼저 빠르게 사라져 결제 성공 문구와 겹치지 않게
+  // 결제 성공 화면이 다 나타난 뒤(400) 잠깐 쉬고 체크가 그려짐
+  A2(ck,[{strokeDashoffset:32},{strokeDashoffset:0}],420,600,'decel');
+  await wait(1700);
+}
+async function gate(k,alive){
+  if(k===2){await wait(300);return;}
+  if(k===6){await wait(500);return;} // 7번: PayPal을 맨 위에 내려놓으면 바로 공유 요소 전환으로 8번 결제창에 이어짐
+  if(k===3){setNow('4 제품 소개','목업 속 결제 프로토타입 재생 · 끝나면 자동으로 다음');await proto4(SC['3'],alive);if(!alive())return;
+    // 영상 마지막 로딩 화면에서 목업 화면이 서서히 흰색으로 사라짐 → 흰 화면만 남은 채 4 → 5 줌인
+    A(q('3','.ph-white'),[{opacity:0},{opacity:1}],900,0,'move');await wait(1100);return;}
+  const el=SC[SCENE_OF(k)];let stopped=false;const on=()=>alive()&&!stopped;
+  setNow(NAMES[FLOW[k].from],k===7?'[체험 완료]를 누르면 다음으로':k===5?'[결제하기]를 누르면 다음으로':'화면을 터치하면 다음으로');
+  dev.classList.add('wait-tap');
+  const idle=IDLE[FLOW[k].from];if(idle)idle(el,on);
+  await waitTap();stopped=true;dev.classList.remove('wait-tap');
+}
+let CURSCR='1'; // 지금 보이는 화면 번호 (3→4 카피 이동 후는 '4')
+async function runFlow(startAt=-1,{gateFirst=false}={}){
+  tapWaiter=null;dev.classList.remove('wait-tap','is-off');closePanel();PAUSED=false;
+  const g=++flowGen,alive=()=>g===flowGen;clearAll();
+  chipsEl.querySelectorAll('button').forEach((b,i)=>b.classList.toggle('on',i===startAt));
+  let k;
+  let skip=false;
+  if(startAt<0){CURSCR='1';showScene('1');setNow(NAMES[1]);await ENTER[1](SC[1],alive);k=0;}
+  else{const fr=FLOW[startAt].from;CURSCR=fr;showScene(fr);setNow(NAMES[fr]);await ENTER[fr](SC[fr],alive);k=startAt;skip=!gateFirst;
+    if(startAt===3&&alive()){await transition(FLOW[2],alive);CURSCR='4';}}
+  while(alive()){
+    // 전환 칩으로 들어온 첫 구간은 바로 재생, 그 외에는 화면별 넘김 규칙(자동/터치)을 따름
+    if(skip){await wait(600);skip=false;}else await gate(k,alive);
+    if(!alive())return;
+    const tr=FLOW[k];chipsEl.querySelectorAll('button').forEach((b,i)=>b.classList.toggle('on',i===k));
+    setNow(tr.label,TYPE_NAME[tr.type]);
+    await transition(tr,alive);if(!alive())return;
+    CURSCR=tr.type==='inner'?'4':tr.to;setNow(NAMES[tr.to]);k=(k+1)%FLOW.length;
+  }
+}
+FLOW.forEach((tr,i)=>{const b=document.createElement('button');b.type='button';b.textContent=tr.label;b.addEventListener('click',()=>runFlow(i));chipsEl.appendChild(b);});
+/* ---------- 상단 당김 패널: 어느 화면이든 위쪽 가장자리에서 아래로 끌어내리면 열림 (일시정지 기능 없음, 뒤 화면은 그대로 진행) ---------- */
+const pd=dev.querySelector('.pd-layer'),pdLang=pd.querySelector('[data-act="lang"]'),offScr=dev.querySelector('.off-screen');let pulled=false;
+function openPanel(){if(pd.classList.contains('open')||dev.classList.contains('is-off'))return;pd.classList.add('open');pd.setAttribute('aria-hidden','false');}
+function closePanel(){if(!pd.classList.contains('open'))return;pd.classList.remove('open');pd.setAttribute('aria-hidden','true');}
+const START_OF={'1':-1,'2':1,'3':2,'4':3,'5':4,'6':5,'7':6,'8':7},PREV_OF={'1':'1','2':'1','3':'2','4':'3','5':'4','6':'5','7':'6','8':'7'};
+pd.addEventListener('click',e=>{e.stopPropagation();const b=e.target.closest('.pdb');
+  closePanel();if(!b)return; // 빈 곳 탭 → 닫기만
+  const act=b.dataset.act;
+  if(act==='home')runFlow(-1);
+  if(act==='back'){const p=PREV_OF[CURSCR];runFlow(START_OF[p],{gateFirst:true});}
+  if(act==='lang'){ // KR(기본) ↔ EN 전환, 보던 화면부터 바뀐 언어로 다시 재생
+    const on=pdLang.getAttribute('aria-pressed')!=='true';pdLang.setAttribute('aria-pressed',on);pdLang.setAttribute('aria-label',on?'한국어로 보기':'영어로 보기');
+    flowGen++;clearAll();setLang(on?'en':'ko');runFlow(START_OF[CURSCR],{gateFirst:true});} // gateFirst: 4번 목업 시퀀스처럼 화면 안 동작을 건너뛰지 않게
+  if(act==='close'){ // 체험 끄기: 모든 진행을 멈추고 화면을 꺼진 상태(검정)로 전환
+    flowGen++;tapWaiter=null;dev.classList.remove('wait-tap');dev.classList.add('is-off');setNow('꺼짐','위쪽 "다시 재생" 버튼으로 다시 켜기');
+    setTimeout(()=>{if(dev.classList.contains('is-off'))clearAll();},700);}
+});
+let pdStart=null;
+dev.addEventListener('pointerdown',e=>{const r=dev.getBoundingClientRect();pulled=false;
+  if(!pd.classList.contains('open')&&e.clientY-r.top<r.height*.12){pdStart={y:e.clientY,h:r.height};e.preventDefault();try{dev.setPointerCapture(e.pointerId);}catch(_){}}});
+dev.addEventListener('pointermove',e=>{if(!pdStart)return;if(e.clientY-pdStart.y>pdStart.h*.08){pulled=true;pdStart=null;openPanel();}});
+const pdEnd=e=>{pdStart=null;try{dev.releasePointerCapture(e.pointerId);}catch(_){}};
+dev.addEventListener('pointerup',pdEnd);dev.addEventListener('pointercancel',pdEnd);
+dev.addEventListener('dragstart',e=>e.preventDefault());
+dev.addEventListener('click',()=>{if(pulled){pulled=false;return;}if(pd.classList.contains('open')||dev.classList.contains('is-off'))return;tap('screen');});
+dev.querySelector('.done').addEventListener('click',e=>{e.stopPropagation();tap('done');});
+dev.querySelector('.pbtn').addEventListener('click',e=>{e.stopPropagation();tap('pay');}); // 6번은 [결제하기] 버튼을 눌러야 7번으로
+
+/* ---------- 언어 전환: 기본 KR, 플로팅 버튼 활성 시 EN ---------- */
+let LANG='ko';
+const COPY_EN={ // 번역 시트 기준
+  '1 .t':['Global Customers','Familiar Payments','As usual'],
+  '2 .t':['What if payment issues','stop global customers','from buying?'],
+  '3 .sub':['One Platform for All Global Payment Methods'],
+  '3 .t':['The Payment Platform','for Global Customers','PayVerse'],
+  '5 .t':['Pay with Your Preferred','Payment Method'],
+  '6 .t':['Pay in a','Familiar Language'],
+  '6 .foot':['Reduce Checkout Drop-Offs','with Familiar Languages'],
+  '7 .t':["Optimize Your Customers'",'Payment Journey'],
+  '7 .foot':["Put Your Customers' Preferred",'Payment Methods First']
+};
+const COPY_EN_PLAIN={'5 .unit span':'Local Payment Methods','8 .done':'Finish'};
+const spansOf=k=>{const [s,sel]=k.split(' ');return [...dev.querySelectorAll(`.fs[data-s="${s}"] ${sel} .ln>span`)];};
+const plainOf=k=>{const [s,...sel]=k.split(' ');return dev.querySelector(`.fs[data-s="${s}"] ${sel.join(' ')}`);};
+const COPY_KO={},COPY_KO_PLAIN={};
+Object.keys(COPY_EN).forEach(k=>COPY_KO[k]=spansOf(k).map(s=>s.dataset.txt??s.textContent));
+Object.keys(COPY_EN_PLAIN).forEach(k=>COPY_KO_PLAIN[k]=plainOf(k).textContent);
+function setLang(l){
+  LANG=l;const ko=l==='ko';
+  Object.keys(COPY_EN).forEach(k=>{const src=ko?COPY_KO[k]:COPY_EN[k];spansOf(k).forEach((s,i)=>{s.dataset.txt=src[i]??'';s.parentElement.style.display=s.dataset.txt?'':'none';});});
+  Object.keys(COPY_EN_PLAIN).forEach(k=>{plainOf(k).textContent=ko?COPY_KO_PLAIN[k]:COPY_EN_PLAIN[k];});
+  // 7번 하단 안내: EN은 두 줄로 나눠 양옆 여백 확보, 두 줄 중심이 KR 한 줄 중심과 같게 행간 10.3px
+  dev.querySelector('.fs[data-s="7"] .foot').style.lineHeight=ko?'18px':'10.3px';
+  // 2번 의견카드는 이미지라 언어별 파일로 교체 (EN 2번 카드는 3줄이라 더 높음)
+  const CH=ko?[46.2,49.9,46.2,46.2]:[46.2,63.9,45.6,46.2];
+  dev.querySelectorAll('.fs[data-s="2"] .cd').forEach((im,i)=>{im.src=`assets/card${i+1}${ko?'':'_en'}.png`;im.style.height=CH[i]+'px';});
+  document.documentElement.lang=ko?'ko':'en';buildText();
+}
+[1,2,3,4].forEach(i=>{new Image().src=`assets/card${i}_en.png`;});
+
+/* ---------- easing rails ---------- */
+let railGen=0;
+async function playRails(){const g=++railGen;
+  while(g===railGen){document.querySelectorAll('.rail').forEach(r=>{const d=r.querySelector('.dot');d.getAnimations().forEach(a=>a.cancel());
+    d.animate([{transform:'translateX(0)'},{transform:`translateX(${r.clientWidth-28}px)`}],{duration:t(700),easing:r.dataset.k==='linear'?'linear':ez(r.dataset.k),fill:'both'});});
+    await wait(1900);}
+}
+
+function playAll(){document.documentElement.style.setProperty('--slow',S.slow);demos.forEach(d=>d.play());playRails();runFlow();}
+function seg(id,fn){const box=document.getElementById(id);box.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;box.querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed',x===b?'true':'false'));fn(b.dataset.v);playAll();});}
+seg('speed',v=>S.slow=+v);
+seg('easing',v=>S.linear=v==='linear');
+seg('mode',v=>{demos.forEach(d=>{d.gen++;d.reset();});flowGen++;clearAll();MODE=v;buildText();});
+buildText();
+document.getElementById('debug').addEventListener('change',e=>document.querySelectorAll('.screen,.dev').forEach(s=>s.classList.toggle('debug',e.target.checked)));
+document.getElementById('replay').addEventListener('click',playAll);
+// 전체화면: 키오스크 화면만 크게 (Esc 또는 오른쪽 위 ×로 나가기). 전체화면에서 X로 끈 뒤에는 검은 화면을 터치하면 1번부터 다시 켜짐
+const fwrap=dev.parentElement;
+// 페이지 위를 키오스크 화면으로 덮고(뒤 글씨 안 보이게), 가능하면 브라우저 전체화면도 함께 켬
+const setFull=on=>{fwrap.classList.toggle('is-full',on);document.body.classList.toggle('has-full',on);};
+document.getElementById('fsbtn').addEventListener('click',()=>{setFull(true);const el=document.documentElement,req=el.requestFullscreen||el.webkitRequestFullscreen;try{const pr=req&&req.call(el);if(pr&&pr.catch)pr.catch(()=>{});}catch(e){}});
+const exitFull=()=>{setFull(false);if(document.fullscreenElement&&document.exitFullscreen)document.exitFullscreen().catch(()=>{});};
+document.getElementById('fsclose').addEventListener('click',exitFull);
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&fwrap.classList.contains('is-full'))exitFull();});
+document.addEventListener('fullscreenchange',()=>{if(!document.fullscreenElement)setFull(false);});
+offScr.addEventListener('click',e=>{e.stopPropagation();if(fwrap.classList.contains('is-full')&&dev.classList.contains('is-off'))runFlow(-1);});
+const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
+// 140 각 자릿수 칸 폭을 '멈췄을 때 보일 숫자'의 실제 글자 폭에 맞춤 (Figma처럼 1이 좁은 비례 폭, 굴러가는 다른 숫자는 칸 안에서 가운데 정렬)
+function fitNum(){const ctx=document.createElement('canvas').getContext('2d');
+  document.querySelectorAll('.num').forEach(o=>{const cs=getComputedStyle(o);ctx.font=`${cs.fontWeight} ${cs.fontSize} ${cs.fontFamily}`;const fs=parseFloat(cs.fontSize);
+    [...o.querySelectorAll('.col')].forEach((c,i)=>{c.style.width=ctx.measureText(o.dataset.n[i]).width+'px';});});}
+const start=()=>{fitNum();if(!reduce)playAll();};
+if(document.fonts&&document.fonts.ready)document.fonts.ready.then(start);else start();
+</script>
+
+</body></html>
