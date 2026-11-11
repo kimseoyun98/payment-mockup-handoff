@@ -209,12 +209,13 @@ function render2B(root,t,finStart){
 function stone2B(root,isFin){
   const sp=root.querySelector('.rise-sp');if(!sp)return;
   const rise=root.querySelector('.rise'),sat=root.querySelector('.rise-sat'),cp=root.querySelector('.rise-cp'),g=root.querySelector('.sat-g');
-  if(!isFin){[sp,sat].forEach(e=>e.setAttribute('opacity',0));return;}
+  if(!isFin){[sp,sat].forEach(e=>e.setAttribute('opacity',0));delete root.dataset.satT0;return;}
   const cy=+rise.getAttribute('cy'),r=+rise.getAttribute('r'),o=+rise.getAttribute('opacity');
   sp.setAttribute('cx',100);sp.setAttribute('cy',cy-r*.62);sp.setAttribute('rx',r*.62);sp.setAttribute('ry',r*.28);sp.setAttribute('opacity',o*.35); // 위쪽에 넓고 옅은 빛만 (가운데가 볼록해 보이지 않게)
-  // 새틴(비단) 광택: 원 면 위로 넓고 옅은 빛줄기가 왼쪽 위 → 오른쪽 아래로 비스듬히 미끄러짐 (1.6초마다)
+  // 새틴(비단) 광택: 원이 나타난 순간부터 넓고 옅은 빛줄기가 왼쪽 위 → 오른쪽 아래로 천천히 한 번 미끄러짐 (3.2초에 한 번)
   cp.setAttribute('cy',cy);cp.setAttribute('r',r);sat.setAttribute('opacity',o);
-  const ph=(performance.now()/1600)%1,c=10+ph*180; // 빛줄기 중심이 대각선을 따라 이동 (원 밖 → 원 밖)
+  const now=performance.now();if(!root.dataset.satT0)root.dataset.satT0=now;
+  const ph=((now-root.dataset.satT0)/3200)%1,c=30+ph*160; // 빛줄기 중심이 대각선을 따라 이동 (원 가장자리에서 들어와 원 밖으로). 성공 원이 보이는 1초 남짓 동안 가운데쯤까지 지나감
   g.setAttribute('x1',c-35);g.setAttribute('y1',c-35);g.setAttribute('x2',c+35);g.setAttribute('y2',c+35);
 }
 L.load=el('div','load',{width:f(55)+'px',height:f(55)+'px',opacity:0});
