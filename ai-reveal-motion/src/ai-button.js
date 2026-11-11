@@ -52,7 +52,9 @@ export class AIButton {
     const cs = getComputedStyle(this.btn);
     this.full = { width: `${this.btn.offsetWidth}px`, paddingLeft: cs.paddingLeft, paddingRight: cs.paddingRight };
     const size = this.btn.offsetHeight; // 동그라미 지름 = 버튼 높이
-    const pad = `${(size - this.icon.getBoundingClientRect().width) / 2}px`; // 별이 동그라미 가운데 오도록
+    // 별이 동그라미 가운데 오도록. 화면에 보이는 크기(getBoundingClientRect)가 아니라 레이아웃 크기(offsetWidth)로 재야
+    // 결제창이 확대·축소(zoom)된 화면 안에서도 맞음 (부스 8번은 0.5배로 줄여 끼워 넣음)
+    const pad = `${(size - this.btn.querySelector('.ai-icon-wrap').offsetWidth) / 2}px`;
     this.circle = { width: `${size}px`, paddingLeft: pad, paddingRight: pad };
 
     this.label.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 120, easing: EASE_OUT, ...f });
